@@ -310,19 +310,28 @@ def summary_to_fields(
     }
 
 
-def run_sync(config: dict[str, Any], dry_run: bool = False) -> list[SummaryRow]:
+def run_sync(
+    config: dict[str, Any],
+    dry_run: bool = False,
+    fixture_path: Path | None = None,
+) -> list[SummaryRow]:
     feishu_cfg = config["feishu"]
     tables = config["tables"]
     pl_fields = config["field_mapping"]["production_log"]
     sum_fields = config["field_mapping"]["batch_summary"]
     sync_cfg = config.get("sync", {})
 
-    client = FeishuClient(feishu_cfg["app_id"], feishu_cfg["app_secret"])
-    app_token = feishu_cfg["base_app_token"]
+    if fixture_path:
+        with fixture_path.open(encoding="utf-8") as f:
+            raw = json.load(f)
+        LOG.info("Loaded %d records from fixture %s", len(raw), fixture_path)
+    else:
+        client = FeishuClient(feishu_cfg["app_id"], feishu_cfg["app_secret"])
+        app_token = feishu_cfg["base_app_token"]
+        raw = client.list_records(
+            app_token, tables["production_log"], sync_cfg.get("page_size", 500)
+        )
 
-    raw = client.list_records(
-        app_token, tables["production_log"], sync_cfg.get("page_size", 500)
-    )
     records = parse_production_records(
         raw,
         pl_fields,
@@ -334,9 +343,11 @@ def run_sync(config: dict[str, Any], dry_run: bool = False) -> list[SummaryRow]:
     summary_rows = aggregate_records(records, config)
     LOG.info("Aggregated into %d summary rows", len(summary_rows))
 
-    if dry_run:
+    if dry_run or fixture_path:
         return summary_rows
 
+    client = FeishuClient(feishu_cfg["app_id"], feishu_cfg["app_secret"])
+    app_token = feishu_cfg["base_app_token"]
     existing = client.list_summary_keys(
         app_token,
         tables["batch_summary"],
@@ -389,6 +400,14 @@ def main() -> int:
         action="store_true",
         help="Print aggregated summary without writing to Feishu",
     )
+    parser.add_argument(
+        "--fixture",
+        type=Path,
+        nargs="?",
+        const=Path(__file__).parent / "fixtures" / "sample_records.json",
+        default=None,
+        help="Load production log from JSON fixture (default: fixtures/sample_records.json)",
+    )
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args()
 
@@ -398,7 +417,18 @@ def main() -> int:
     )
 
     config = load_config(args.config)
-    rows = run_sync(config, dry_run=args.dry_run)
+    fixture = args.fixture
+    if (
+        args.dry_run
+        and not fixture
+        and config["feishu"].get("app_id") == "YOUR_APP_ID"
+    ):
+        fixture = Path(__file__).parent / "fixtures" / "sample_records.json"
+    rows = run_sync(
+        config,
+        dry_run=args.dry_run or bool(fixture),
+        fixture_path=fixture,
+    )
     if args.dry_run:
         print_dry_run(rows)
     return 0

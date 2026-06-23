@@ -22,7 +22,8 @@
 2. `pip install -r requirements.txt`
 3. 填写 `config.json` 中的 `app_id`、`app_secret`、`base_app_token`、各 `table_id`
 4. 飞书应用开通权限：`bitable:app`、`bitable:app:readonly`（读主表）、写汇总表
-5. 验收：`python sync_batch_summary.py --dry-run -v`
+5. 验收：`python sync_batch_summary.py --dry-run -v`  
+   无飞书凭证时：`python sync_batch_summary.py --fixture --dry-run -v`
 6. 正式：`python sync_batch_summary.py`
 7. Cron 示例（每 30 分钟）：
 

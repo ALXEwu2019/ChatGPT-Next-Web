@@ -1,6 +1,7 @@
 # OpenClaw P0 建表指令单 — 机加工生产日志 v4
 
 > **执行对象：** OpenClaw / BKD 飞书助理  
+> **一键粘贴版：** `docs/openclaw-p0-prompt-cn.md`（精简 Prompt，适合直接发给飞书 AI）  
 > **建设性质：** 全新飞书多维表格应用，与旧「机加工生产日志」Base **完全隔离**  
 > **依据文档：** `docs/machining-production-log-v4-greenfield-cn.md` §12 已定稿
 

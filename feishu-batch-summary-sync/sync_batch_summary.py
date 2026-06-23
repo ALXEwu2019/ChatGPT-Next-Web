@@ -168,6 +168,53 @@ def extract_text(value: Any) -> str:
     return str(value).strip()
 
 
+def extract_link_record_ids(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    ids: list[str] = []
+    for item in value:
+        if isinstance(item, dict):
+            for rid in item.get("record_ids") or []:
+                if rid:
+                    ids.append(str(rid))
+    return ids
+
+
+class LinkResolver:
+    def __init__(self, client: FeishuClient, app_token: str, link_tables: dict[str, Any]):
+        self._cache: dict[str, dict[str, str]] = {}
+        self._reverse: dict[str, dict[str, str]] = {}
+        for name, spec in link_tables.items():
+            table_id = spec["table_id"]
+            fields = spec.get("lookup_fields") or [spec.get("display_field", "")]
+            mapping: dict[str, str] = {}
+            reverse: dict[str, str] = {}
+            for item in client.list_records(app_token, table_id):
+                record_id = item["record_id"]
+                row_fields = item.get("fields", {})
+                for field_name in fields:
+                    text = extract_text(row_fields.get(field_name))
+                    if text:
+                        mapping[record_id] = text
+                        reverse[text] = record_id
+                        break
+            self._cache[name] = mapping
+            self._reverse[name] = reverse
+            LOG.debug("Link table %s: %d records resolved", name, len(mapping))
+
+    def resolve(self, table_name: str, value: Any) -> str:
+        ids = extract_link_record_ids(value)
+        if not ids:
+            return extract_text(value)
+        mapping = self._cache.get(table_name, {})
+        return mapping.get(ids[0], "")
+
+    def reverse_resolve(self, table_name: str, display_value: str) -> str:
+        if not display_value:
+            return ""
+        return self._reverse.get(table_name, {}).get(display_value, "")
+
+
 def extract_number(value: Any) -> float:
     if value is None or value == "":
         return 0.0
@@ -207,6 +254,7 @@ def parse_production_records(
     field_map: dict[str, str],
     include_status: list[str],
     require_valid: bool,
+    link_resolver: LinkResolver | None = None,
 ) -> list[ProductionRecord]:
     parsed: list[ProductionRecord] = []
     for item in raw_records:
@@ -220,12 +268,25 @@ def parse_production_records(
         if require_valid and fields.get(field_map["valid_qualified"]) in (None, ""):
             continue
 
+        batch_text = extract_text(fields.get(field_map["batch_text"]))
+        if not batch_text and "batch_text_fallback" in field_map:
+            batch_text = extract_text(fields.get(field_map["batch_text_fallback"]))
+
+        if link_resolver:
+            product = link_resolver.resolve("product", fields.get(field_map["product"]))
+            process_code = link_resolver.resolve(
+                "process", fields.get(field_map["process_code"])
+            )
+        else:
+            product = extract_text(fields.get(field_map["product"]))
+            process_code = extract_text(fields.get(field_map["process_code"]))
+
         parsed.append(
             ProductionRecord(
                 record_id=item["record_id"],
-                batch_text=extract_text(fields.get(field_map["batch_text"])),
-                product=extract_text(fields.get(field_map["product"])),
-                process_code=extract_text(fields.get(field_map["process_code"])),
+                batch_text=batch_text,
+                product=product,
+                process_code=process_code,
                 production_area=extract_text(fields.get(field_map["production_area"])),
                 valid_qualified=valid_q,
                 valid_scrap=valid_s,
@@ -295,19 +356,46 @@ def aggregate_records(
 
 
 def summary_to_fields(
-    row: SummaryRow, field_map: dict[str, str], sync_run_id: str, now_iso: str
+    row: SummaryRow,
+    field_map: dict[str, str],
+    sync_run_id: str,
+    now_ms: int,
+    link_resolver: LinkResolver | None = None,
+    write_spec: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    return {
+    write_spec = write_spec or {}
+    link_fields = write_spec.get("link_fields", {})
+    skip_fields = set(write_spec.get("skip_fields", []))
+
+    fields: dict[str, Any] = {
         field_map["batch_text"]: row.batch_text,
-        field_map["product"]: row.product,
-        field_map["process_code"]: row.process_code,
-        field_map["production_area"]: row.production_area,
         field_map["qualified_total"]: row.qualified_total,
         field_map["scrap_total"]: row.scrap_total,
         field_map["batch_process_key"]: row.batch_process_key,
-        field_map["last_sync_time"]: now_iso,
+        field_map["last_sync_time"]: now_ms,
         field_map["sync_run_id"]: sync_run_id,
     }
+
+    if "production_area" in field_map and "production_area" not in skip_fields:
+        if row.production_area:
+            fields[field_map["production_area"]] = row.production_area
+
+    for logical_name, value in (
+        ("product", row.product),
+        ("process_code", row.process_code),
+    ):
+        if logical_name not in field_map:
+            continue
+        feishu_field = field_map[logical_name]
+        link_table = link_fields.get(logical_name)
+        if link_table and link_resolver:
+            record_id = link_resolver.reverse_resolve(link_table, value)
+            if record_id:
+                fields[feishu_field] = [record_id]
+            continue
+        fields[feishu_field] = value
+
+    return fields
 
 
 def run_sync(
@@ -332,11 +420,19 @@ def run_sync(
             app_token, tables["production_log"], sync_cfg.get("page_size", 500)
         )
 
+    link_resolver = None
+    if not fixture_path and config.get("link_tables"):
+        client = FeishuClient(feishu_cfg["app_id"], feishu_cfg["app_secret"])
+        link_resolver = LinkResolver(
+            client, feishu_cfg["base_app_token"], config["link_tables"]
+        )
+
     records = parse_production_records(
         raw,
         pl_fields,
         sync_cfg.get("include_status", ["已确认"]),
         sync_cfg.get("require_valid_quantities", True),
+        link_resolver=link_resolver,
     )
     LOG.info("Fetched %d raw records, %d eligible for aggregation", len(raw), len(records))
 
@@ -355,12 +451,15 @@ def run_sync(
         sync_cfg.get("page_size", 500),
     )
     sync_run_id = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S") + "-" + uuid.uuid4().hex[:8]
-    now_iso = datetime.now(timezone.utc).isoformat()
+    now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+    write_spec = config.get("summary_write", {})
 
     to_create: list[dict[str, Any]] = []
     to_update: list[dict[str, Any]] = []
     for row in summary_rows:
-        fields = summary_to_fields(row, sum_fields, sync_run_id, now_iso)
+        fields = summary_to_fields(
+            row, sum_fields, sync_run_id, now_ms, link_resolver, write_spec
+        )
         record_id = existing.get(row.batch_process_key)
         if record_id:
             to_update.append({"record_id": record_id, "fields": fields})

@@ -20,6 +20,8 @@
 
 1. 复制本目录到服务器，如 `~/feishu-batch-summary-sync/`
 2. `pip install -r requirements.txt`
+1. 复制 `config.example.json` 为 `config.json` 并填写凭证
+2. `pip install -r requirements.txt`
 3. 填写 `config.json` 中的 `app_id`、`app_secret`、`base_app_token`、各 `table_id`
 4. 飞书应用开通权限：`bitable:app`、`bitable:app:readonly`（读主表）、写汇总表
 5. 验收：`python sync_batch_summary.py --dry-run -v`  

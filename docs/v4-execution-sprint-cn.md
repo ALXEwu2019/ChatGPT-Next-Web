@@ -14,6 +14,22 @@
 | 质量配置 | ✅ 原因库+联动137行 | ⏳ **4 个联动视图** |
 | cron | ⏳ 云环境无 crontab | ⏳ **你的服务器部署** |
 | P2 不良闭环 | ✅ 明细表+处置类型字段 | ⏳ 状态机+公式+测试 |
+| **2026 Base 优化** | ✅ 审计+方案+verify_2026 | ⏳ **飞书 AI 按阶段 A–G 执行** |
+
+---
+
+## 2026 Base 优化（并行推进）
+
+**生产 Base：** `P2MtbRCz1a0Pj8sAOtocrHb6ntf`（用户日常链接）  
+**文档：** `docs/machining-production-log-2026-optimization-cn.md`  
+**飞书 AI：** `docs/openclaw-2026-optimization-prompt-cn.md` + `docs/openclaw-2026-context-supplement-cn.md`
+
+```bash
+cd feishu-batch-summary-sync
+cp config.2026.example.json config.2026.json   # 填入凭证
+python3 verify_2026.py
+python3 sync_batch_summary.py --config config.2026.json --dry-run -v
+```
 
 ---
 

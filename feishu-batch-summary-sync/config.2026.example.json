@@ -1,0 +1,83 @@
+{
+  "feishu": {
+    "app_id": "cli_xxxxxxxx",
+    "app_secret": "your_app_secret",
+    "base_app_token": "P2MtbRCz1a0Pj8sAOtocrHb6ntf"
+  },
+  "tables": {
+    "production_log": "tblolmz13JUyLDFO",
+    "batch_summary": "tblIygS9QW3mPmIu",
+    "defect_linkage": "tblYlVXydRLMzPeG",
+    "defect_reason": "tblBqYPtdnIVh6Ml"
+  },
+  "link_tables": {
+    "product": {
+      "table_id": "tblkF2fYnyShAiMR",
+      "lookup_fields": ["产品代码", "产品名称"]
+    },
+    "process": {
+      "table_id": "tblPirQ3ygZPS82h",
+      "lookup_fields": ["工序代码", "工序名称"]
+    },
+    "control": {
+      "table_id": "tbltHNZWMrKAJGWh",
+      "lookup_fields": ["批次号", "批号文本"]
+    }
+  },
+  "summary_write": {
+    "link_fields": {
+      "product": "product",
+      "process_code": "process"
+    },
+    "skip_fields": ["production_area"]
+  },
+  "field_mapping": {
+    "production_log": {
+      "batch_text": "批号文本",
+      "batch_text_fallback": "生产批号",
+      "product": "产品",
+      "process_code": "工序代码",
+      "production_area": "生产区域",
+      "valid_qualified": "有效合格数量",
+      "valid_scrap": "有效报废数量",
+      "status": "工序下发状态"
+    },
+    "batch_summary": {
+      "batch_text": "批号文本",
+      "product": "产品",
+      "process_code": "工序代码",
+      "production_area": "生产区域",
+      "qualified_total": "合格合计",
+      "scrap_total": "报废合计",
+      "batch_process_key": "批工序键",
+      "last_sync_time": "末次同步时间",
+      "sync_run_id": "同步批次号"
+    }
+  },
+  "sync": {
+    "include_status": ["已确认"],
+    "require_valid_quantities": true,
+    "page_size": 500
+  },
+  "aggregation_by_process": {
+    "#2030": ["batch_text", "product", "process_code", "summary_area"],
+    "#4050": ["batch_text", "product", "process_code", "production_area"],
+    "#60": ["batch_text", "product", "process_code"],
+    "#70": ["batch_text", "product", "process_code"],
+    "#80": ["batch_text", "product", "process_code"]
+  },
+  "region_merge": {
+    "#2030": {
+      "A1": "A",
+      "A2": "A",
+      "B1": "B",
+      "B2": "B"
+    }
+  },
+  "default_aggregation": ["batch_text", "product", "process_code"],
+  "batch_key_format": {
+    "#2030": "{batch_text}-{process_code}-{summary_area}",
+    "#4050": "{batch_text}-{process_code}-{production_area}",
+    "default": "{batch_text}-{process_code}"
+  }
+}

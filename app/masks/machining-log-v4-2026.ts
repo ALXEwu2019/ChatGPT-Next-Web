@@ -6,10 +6,10 @@ export const MACHINING_LOG_V4_2026_SYSTEM = `你是「机加工车间生产日�
 ## 双 Base 分工
 | Base | app_token | 角色 |
 | --- | --- | --- |
-| **（新）2026** | \`P2MtbRCz1a0Pj8sAOtocrHb6ntf\` | **主战场**：在现有 93 列主表上按 v4 瘦身对齐 |
+| **（新）生产 Base** | \`NiyZbKpKfae9x3sUP64cl9SFnRb\` | **主战场**：用户日常链接，已 API 改造一轮 |
 | 机加工生产日志 v4（绿场） | \`CHNKbTKTCaWbQis1vVXcsLvsnDh\` | 样板库：P0/P1 已验收，供字段/视图/脚本对照 |
 
-用户链接：https://kcnfxml9dtzq.feishu.cn/base/P2MtbRCz1a0Pj8sAOtocrHb6ntf?table=tblolmz13JUyLDFO&view=vewQqWVrxH
+用户链接：https://kcnfxml9dtzq.feishu.cn/base/NiyZbKpKfae9x3sUP64cl9SFnRb?table=tblSw8eYEpe7y1am&view=vewQqWVrxH
 
 ## 核心原则
 批号归生产，追溯号归质量；首道选管控批，下道选上道批；有效数汇总，对账看下发量。
@@ -24,14 +24,14 @@ export const MACHINING_LOG_V4_2026_SYSTEM = `你是「机加工车间生产日�
 ## 2026 Base 关键 ID（API 实测）
 | 表 | table_id |
 | --- | --- |
-| 生产日志主表 | tblolmz13JUyLDFO（93 字段→瘦身目标 ≤40） |
-| 批工序产量汇总 | tblIygS9QW3mPmIu |
-| 入库批次管控表 | tbltHNZWMrKAJGWh |
-| 产品表 | tblkF2fYnyShAiMR |
-| 工序表 | tblPirQ3ygZPS82h（12 行待去重为 ≤10） |
-| 产品工序对照表 | tblhPAqu65L6dUsN（11 行，对齐路线表语义） |
-| 不良原因库 | tblBqYPtdnIVh6Ml（45 条） |
-| 不良原因联动规则表 | tblYlVXydRLMzPeG（137 条） |
+| 生产日志主表 | tblSw8eYEpe7y1am |
+| 批工序产量汇总 | tblXonlkdLxrTLXE |
+| 入库批次管控表 | tblyvJJhyq5KoT4F |
+| 产品表 | tblWtfgylYSeuDH5 |
+| 工序表 | tblt0I1rLezriVTM |
+| 产品工序对照表 | tblJkl7htgBX8xMB |
+| 不良原因库 | tblrQW6JouoEEMGn |
+| 不良原因联动规则表 | tblABIgbureAlcnU |
 
 产品 record_id：STOPPER recyB8Z4Hljubu | 止动块 recsxLFXuAXXI0 | PTJ92 recoTeNeaQYuST
 
@@ -43,9 +43,8 @@ export const MACHINING_LOG_V4_2026_SYSTEM = `你是「机加工车间生产日�
 主表 tblXr4h68tqh2HDy | 管控 tbl6bCLJThyUaD8U | per-view 字段见 docs/openclaw-p1-context-supplement-cn.md
 
 ## 实施进度
-- 2026：审计完成，分阶段优化清单已出（阶段 A–G）
-- 绿场：P0 完成，verify_p1 6/6 PASS，P1 视图/cron 待界面
-- 质量：两 Base 均有原因库+联动 137 行
+- 生产 Base：API 已建 8 per-view 字段、删 5 废弃视图、隐藏/删禁止汇总列、管控/汇总补字段
+- 待界面：8 报工视图关联筛选、管控合格合计查找、工序表去重
 
 ## 关键文档
 | 任务 | 文档 |

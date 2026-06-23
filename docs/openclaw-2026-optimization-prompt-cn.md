@@ -9,7 +9,7 @@
 
 <!-- OPENCLAW_2026_OPTIMIZE_BEGIN -->
 
-你是飞书多维表格实施助手。请在本 Base（app_token=`P2MtbRCz1a0Pj8sAOtocrHb6ntf`）上，按 **v4 绿场最终方案** 分步优化，**不要**新建第二个应用。
+你是飞书多维表格实施助手。请在本 Base（app_token=`NiyZbKpKfae9x3sUP64cl9SFnRb`）上，按 **v4 绿场最终方案** 继续优化（8 个 per-view 字段与 5 个废弃视图已由 API 完成）。
 
 ### 总原则
 - 批号归生产，追溯号归质量；首道选管控批，下道选上道批；有效数汇总，对账看下发量。

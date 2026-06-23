@@ -2,33 +2,30 @@
   "feishu": {
     "app_id": "cli_xxxxxxxx",
     "app_secret": "your_app_secret",
-    "base_app_token": "P2MtbRCz1a0Pj8sAOtocrHb6ntf"
+    "base_app_token": "NiyZbKpKfae9x3sUP64cl9SFnRb"
   },
   "tables": {
-    "production_log": "tblolmz13JUyLDFO",
-    "batch_summary": "tblIygS9QW3mPmIu",
-    "defect_linkage": "tblYlVXydRLMzPeG",
-    "defect_reason": "tblBqYPtdnIVh6Ml"
+    "production_log": "tblSw8eYEpe7y1am",
+    "batch_summary": "tblXonlkdLxrTLXE",
+    "defect_linkage": "tblABIgbureAlcnU",
+    "defect_reason": "tblrQW6JouoEEMGn"
   },
   "link_tables": {
     "product": {
-      "table_id": "tblkF2fYnyShAiMR",
+      "table_id": "tblWtfgylYSeuDH5",
       "lookup_fields": ["产品代码", "产品名称"]
     },
     "process": {
-      "table_id": "tblPirQ3ygZPS82h",
+      "table_id": "tblt0I1rLezriVTM",
       "lookup_fields": ["工序代码", "工序名称"]
     },
     "control": {
-      "table_id": "tbltHNZWMrKAJGWh",
+      "table_id": "tblyvJJhyq5KoT4F",
       "lookup_fields": ["批次号", "批号文本"]
     }
   },
   "summary_write": {
-    "link_fields": {
-      "product": "product",
-      "process_code": "process"
-    },
+    "link_fields": {},
     "skip_fields": ["production_area"]
   },
   "field_mapping": {

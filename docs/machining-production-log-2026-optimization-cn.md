@@ -1,8 +1,7 @@
 # 机加工车间生产日志管理系统（新）2026 — v4 优化方案
 
-> **优化对象：** [2026 生产 Base](https://kcnfxml9dtzq.feishu.cn/base/P2MtbRCz1a0Pj8sAOtocrHb6ntf?table=tblolmz13JUyLDFO&view=vewQqWVrxH)  
-> **技术参照：** `docs/machining-production-log-v4-greenfield-cn.md`（v4 绿场最终方案）  
-> **审计日期：** 2026-06-23 API 实测
+> **优化对象：** [生产 Base](https://kcnfxml9dtzq.feishu.cn/base/NiyZbKpKfae9x3sUP64cl9SFnRb?table=tblSw8eYEpe7y1am&view=vewQqWVrxH)  
+> **app_token：** `NiyZbKpKfae9x3sUP64cl9SFnRb`
 
 ---
 
@@ -10,10 +9,22 @@
 
 | Base | app_token | 定位 |
 | --- | --- | --- |
-| **（新）2026** | `P2MtbRCz1a0Pj8sAOtocrHb6ntf` | **生产主战场**：在现有 25 条报工、22 张表基础上按 v4 瘦身与对齐 |
+| **（新）生产** | `NiyZbKpKfae9x3sUP64cl9SFnRb` | **生产主战场** |
+| ~~旧 token~~ | ~~P2MtbRCz1a0Pj8sUP64cl9SFnRb~~ | 已迁移，勿用 |
 | **机加工生产日志 v4**（绿场） | `CHNKbTKTCaWbQis1vVXcsLvsnDh` | **标准样板**：P0/P1 已验收结构，供字段命名、脚本、视图筛选对照 |
 
-**原则：** 以 v4 定稿规则改造 2026 Base，**不**把 2026 的 93 列结构复制回绿场；绿场仅作对照与脚本联调沙箱。
+**原则：** 以 v4 定稿规则改造生产 Base，**不**把 93 列结构复制回绿场；绿场仅作对照与脚本联调沙箱。
+
+### 1.1 API 已执行（2026-06-23）
+
+| 动作 | 结果 |
+| --- | --- |
+| 新建 8 个 per-view 选批字段 | ✅ |
+| 删除 5 个 #40/#50 废弃视图 | ✅ |
+| 隐藏/删除禁止汇总列（选择上道汇总、汇总合格合计等） | ✅ |
+| 管控表补 批号文本/工序代码/本工序下发数量 | ✅ |
+| 汇总表补 末次同步时间/同步批次号 | ✅ |
+| 脚本 | `feishu-batch-summary-sync/optimize_production_base.py` |
 
 ---
 

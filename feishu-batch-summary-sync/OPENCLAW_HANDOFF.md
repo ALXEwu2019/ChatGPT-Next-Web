@@ -14,23 +14,22 @@
 | #2030 A1/A2→A，B1/B2→B | `config.json` → `region_merge["#2030"]` |
 | #60/#70/#80 仅批号+工序 | `aggregation_by_process` |
 | #4050 批号+MG 区 | `aggregation_by_process["#4050"]` |
-| 下道选批不区分上道 MG/A | 飞书视图筛选（见 OpenClaw P0 指令单 §5.1） |
+| 下道选批不区分上道 MG/A | 飞书视图筛选（见 P1 Prompt） |
 
 ## 部署步骤
 
-1. 复制本目录到服务器，如 `~/feishu-batch-summary-sync/`
-2. `pip install -r requirements.txt`
 1. 复制 `config.example.json` 为 `config.json` 并填写凭证
 2. `pip install -r requirements.txt`
-3. 填写 `config.json` 中的 `app_id`、`app_secret`、`base_app_token`、各 `table_id`
-4. 飞书应用开通权限：`bitable:app`、`bitable:app:readonly`（读主表）、写汇总表
-5. 验收：`python sync_batch_summary.py --dry-run -v`  
-   无飞书凭证时：`python sync_batch_summary.py --fixture --dry-run -v`
-6. 正式：`python sync_batch_summary.py`
-7. Cron 示例（每 30 分钟）：
+3. 飞书应用开通权限：`bitable:app`、知识库多维表格需 `wiki:node:read`（解析 app_token）
+4. 验收：`python sync_batch_summary.py --dry-run -v`  
+   无凭证时：`python sync_batch_summary.py --fixture --dry-run -v`
+5. 正式：`python sync_batch_summary.py` 或 `./run_sync.sh`
+6. **Cron 每天 8:00、12:00、20:00**（见 `cron.example`、`docs/p1-cron-setup-cn.md`）：
 
 ```cron
-*/30 * * * * cd /path/to/feishu-batch-summary-sync && /usr/bin/python3 sync_batch_summary.py >> /var/log/feishu-batch-summary.log 2>&1
+0 8 * * *  cd /path/to/feishu-batch-summary-sync && ./run_sync.sh
+0 12 * * * cd /path/to/feishu-batch-summary-sync && ./run_sync.sh
+0 20 * * * cd /path/to/feishu-batch-summary-sync && ./run_sync.sh
 ```
 
 ## 批工序键示例
@@ -46,11 +45,14 @@ S-260617-A-#60          # 加工中心仅批号
 | 现象 | 检查 |
 | --- | --- |
 | dry-run 0 行 | 主表是否有 `已确认` 且有效数非空 |
-| #2030 未合并 | `生产区域` 是否为 A1/A2/B1/B2；`region_merge` 是否配置 |
-| API 403 | 应用是否已发布到企业、是否有表权限 |
-| 字段读不到 | `field_mapping` 是否与飞书字段名一致 |
+| 汇总 0 行但有数据 | `link_tables` 是否配置；产品/工序关联字段 |
+| 写入失败 LinkFieldConvFail | `summary_write.link_fields` 是否配置 |
+| #2030 未合并 | `region_merge` 是否配置 |
+| API 91402 NOTEXIST | wiki 库需用 `obj_token` 作 app_token |
+| API 403 | 应用权限与表格协作权限 |
 
 ## 相关文档
 
 - `docs/machining-production-log-v4-greenfield-cn.md`
-- `docs/openclaw-p0-build-instructions-cn.md`
+- `docs/openclaw-p1-prompt-cn.md`
+- `docs/p1-cron-setup-cn.md`

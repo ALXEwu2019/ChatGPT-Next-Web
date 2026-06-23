@@ -1,0 +1,14 @@
+# 机加工批工序产量汇总 — 每天 8:00、12:00、20:00 同步
+# 安装：crontab -e ，粘贴下面三行（把 /path/to 改成实际路径）
+#
+# 示例路径（Linux 服务器）：
+#   /home/ubuntu/feishu-batch-summary-sync
+
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin
+
+0 8 * * *  cd /path/to/feishu-batch-summary-sync && ./run_sync.sh
+0 12 * * * cd /path/to/feishu-batch-summary-sync && ./run_sync.sh
+0 20 * * * cd /path/to/feishu-batch-summary-sync && ./run_sync.sh
+
+# Windows 任务计划程序：见 docs/p1-cron-setup-cn.md

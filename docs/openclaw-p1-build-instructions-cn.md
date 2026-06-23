@@ -161,7 +161,7 @@ python sync_batch_summary.py --dry-run -v
 python sync_batch_summary.py
 ```
 
-Cron 保持 30min。
+Cron 每天 **8:00、12:00、20:00**（见 `docs/p1-cron-setup-cn.md`、`feishu-batch-summary-sync/cron.example`）。
 
 ---
 

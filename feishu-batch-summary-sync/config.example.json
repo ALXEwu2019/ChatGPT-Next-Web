@@ -6,7 +6,9 @@
   },
   "tables": {
     "production_log": "tblXXXXXXXX",
-    "batch_summary": "tblXXXXXXXX"
+    "batch_summary": "tblXXXXXXXX",
+    "defect_linkage": "tblUyVVrhKQOu1pO",
+    "defect_reason": "tblvX8KSv73TluVk"
   },
   "link_tables": {
     "product": {

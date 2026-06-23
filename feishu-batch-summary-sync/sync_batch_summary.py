@@ -336,8 +336,15 @@ def parse_production_records(
 
         valid_q = extract_number(fields.get(field_map["valid_qualified"]))
         valid_s = extract_number(fields.get(field_map["valid_scrap"]))
-        if require_valid and fields.get(field_map["valid_qualified"]) in (None, ""):
-            continue
+        valid_q_raw = fields.get(field_map["valid_qualified"])
+        if require_valid and valid_q_raw in (None, ""):
+            # P2 公式报错或待确认时，无不良记录回退合格数量（§12 C1）
+            has_defect = fields.get("是否有不良")
+            if not has_defect:
+                valid_q = extract_number(fields.get("合格数量"))
+                valid_s = extract_number(fields.get("报废数量"))
+            else:
+                continue
 
         batch_text = extract_text(fields.get(field_map["batch_text"]))
         if not batch_text and "batch_text_fallback" in field_map:

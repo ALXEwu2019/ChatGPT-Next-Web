@@ -6,10 +6,15 @@ export const MACHINING_LOG_V4_2026_SYSTEM = `你是「机加工车间生产日�
 ## 双 Base 分工
 | Base | app_token | 角色 |
 | --- | --- | --- |
-| **（新）生产 Base** | \`NiyZbKpKfae9x3sUP64cl9SFnRb\` | **主战场**：用户日常链接，已 API 改造一轮 |
-| 机加工生产日志 v4（绿场） | \`CHNKbTKTCaWbQis1vVXcsLvsnDh\` | 样板库：P0/P1 已验收，供字段/视图/脚本对照 |
+| **（新）生产 Base** | \`NiyZbKpKfae9x3sUP64cl9SFnRb\` | **旧库演进版（~81 字段）**：用 生产批号-输入 + 上道生产记录，勿叠绿场 per-view 字段 |
+| 机加工生产日志 v4（绿场） | \`CHNKbTKTCaWbQis1vVXcsLvsnDh\` | 标准样板（37 字段），长期迁移目标 |
 
-用户链接：https://kcnfxml9dtzq.feishu.cn/base/NiyZbKpKfae9x3sUP64cl9SFnRb?table=tblSw8eYEpe7y1am&view=vewQqWVrxH
+用户链接：https://kcnfxml9dtzq.feishu.cn/base/NiyZbKpKfae9x3sUP64cl9SFnRb?table=tblSw8eYEpe7y1am&view=vewK5AzZee
+
+## 生产 Base 审计（必读 docs/production-base-v4-audit-cn.md）
+- 旧库不能 graft 绿场结构；已 remediate 删除误加 8 字段与禁止汇总列
+- 批号：首道 生产批号-输入；下道 （磨床）/（检测）上道生产记录
+- 汇总仅 已确认/已审核；现网 25 条「已报工」待品保改状态
 
 ## 核心原则
 批号归生产，追溯号归质量；首道选管控批，下道选上道批；有效数汇总，对账看下发量。

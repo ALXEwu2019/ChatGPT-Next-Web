@@ -1,51 +1,38 @@
-# 生产 Base · P1 视图关联筛选 · 飞书 AI Prompt
+# 生产 Base · 关联筛选 · 飞书 AI Prompt（修正版）
 
-> **前置：** 粘贴 `docs/openclaw-2026-context-supplement-cn.md` 全文。  
-> **Base：** `NiyZbKpKfae9x3sUP64cl9SFnRb`
-
----
+> **前置：** `docs/openclaw-2026-context-supplement-cn.md`  
+> **勿**新建 `关联管控批_*` / `上道批号_*` 字段（已从旧库删除）
 
 <!-- OPENCLAW_2026_P1_VIEWS_BEGIN -->
 
-你是飞书多维表格实施助手。per-view 字段、管控回填、禁止列清理 **已由 API 完成**。本次 **仅配置 8 个报工视图的关联记录筛选**。
+你是飞书多维表格实施助手。Base：`NiyZbKpKfae9x3sUP64cl9SFnRb`，主表 `tblSw8eYEpe7y1am`。
 
-### 任务清单
+本库为 **旧库演进版**，按 v4 语义配置 **既有字段** 的关联筛选：
 
-**A. 首道 2 视图 — 关联管控批字段**
+### 首道（生产批号-输入 fldZXaX1dj）
 
-| 视图 view_id | 字段 | 筛选（管控表 tblyvJJhyq5KoT4F，满足所有） |
+| 表单/视图 | view_id | 筛选（管控表 tblyvJJhyq5KoT4F） |
 | --- | --- | --- |
-| vewK5AzZee | 关联管控批_STOPPER#2030 fldwq1A1yQ | 产品=recyB8Z4Hljubu；工序=recAV0kYI0r5LS(#2030)；批号状态 fldg0qVKFJ=已下发 |
-| vewEah4EhT | 关联管控批_止动块#4050 fld0v2iySA | 产品=recsxLFXuAXXI0；工序=recv94Wg644L3s(#4050)；批号状态=已下发 |
+| STOPPER-#2030 | vewK5AzZee | 产品=recyB8Z4Hljubu；工序=recAV0kYI0r5LS；批号状态=已下发 |
+| 止动块-#4050 | vewEah4EhT | 产品=recsxLFXuAXXI0；工序=recv94Wg644L3s；批号状态=已下发 |
 
-**B. 下道 6 视图 — 上道批号字段（关联主表 tblSw8eYEpe7y1am）**
+### 下道（上道生产记录）
 
-公共条件（STOPPER 三视图）：
-- 工序下发状态 fldOUZwxgp = **已报工** 或 **已确认**（二选一即可，勿用有效合格>0）
-- 工序代码：点选工序表对应 record_id
-
-| view_id | 字段 field_id | 上道工序 record_id |
+| 视图 | 字段 | 上道工序 record_id |
 | --- | --- | --- |
-| vew5Rb9Urh | fldqhOeFGP | recAV0kYI0r5LS (#2030) |
-| vew121aeT9 | fldfGKKcIq | recpGjOr9LdIrW (#4050) |
-| vew2SbrO7V | fld79hDwiF | recoEwR8aH1qZ2 (#60) |
-| vew3B1ivXN | fld00T5v7e | recv94Wg644L3s + **产品=recsxLFXuAXXI0** |
-| vewbP2DKMa | fldrGiNg9l | rectBainbnqqi0 + 产品=止动块 |
-| vew5WATrGc | fldUG1BLwE | recFtCShkvImYO + 产品=止动块 |
+| STOPPER#4050 vew5Rb9Urh | （磨床）上道 fld2RvZGc7 | recAV0kYI0r5LS |
+| STOPPER#60 vew121aeT9 | （检测）上道 fld7I263ZK | recpGjOr9LdIrW |
+| STOPPER#70 vew2SbrO7V | （检测）上道 fld7I263ZK | recoEwR8aH1qZ2 |
+| 止动块#60 vew3B1ivXN | （磨床）上道 fld2RvZGc7 | recv94Wg644L3s + 产品=止动块 |
+| 止动块#70 vewbP2DKMa | （检测）上道 fld7I263ZK | rectBainbnqqi0 + 产品=止动块 |
+| 止动块#80 vew5WATrGc | （检测）上道 fld7I263ZK | recFtCShkvImYO + 产品=止动块 |
 
-**C. 字段属性**
-- 6 个上道批号字段：取消「允许多条」，保持单选
-- 各视图 **生产批号** 保持公式/只读，来源上道批号.批号文本 或 生产批号-输入
+筛选条件：**工序下发状态=已确认或已审核** + 工序代码=上道；**勿用** 有效合格>0。
 
-**D. 管控表合格合计（若时间允许）**
-- 在 tblyvJJhyq5KoT4F 建查找引用 → tblXonlkdLxrTLXE.合格合计
-- 匹配：批号文本 + 产品 + 工序代码
-
-### 输出
-每视图一行表格：| 视图 | 字段 | 已配筛选 | 待人工确认 |
-最后列出测试：在 vew5Rb9Urh 能否选到批号 S-260617-A。
+### 表单视图
+报工多为 **form 类型**，在表单设计器中编辑上述字段的「筛选关联记录」，不是表格列头。
 
 ### 禁止
-- 恢复 #40/#50 视图；添加有效合格>0 筛选；重建 Base
+新建 per-view 字段；恢复 #4050汇总* 公式列；用已报工计入汇总（v4 仅已确认/已审核）
 
 <!-- OPENCLAW_2026_P1_VIEWS_END -->

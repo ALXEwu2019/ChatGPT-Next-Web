@@ -19,7 +19,28 @@ FORBIDDEN_FIELDS = [
     "#60选择上道汇总",
     "车床简化批号",
     "#4050汇总合格合计",
+    "#4050汇总批号",
+    "#4050本汇总剩余可用数",
+    "#4050数量校验",
+    "#60汇总批号",
     "汇总批工序键",
+]
+
+MISTAKEN_ADDED_FIELDS = [
+    "关联管控批_STOPPER#2030",
+    "关联管控批_止动块#4050",
+    "上道批号_STOPPER#4050",
+    "上道批号_STOPPER#60",
+    "上道批号_STOPPER#70",
+    "上道批号_止动块#60",
+    "上道批号_止动块#70",
+    "上道批号_止动块#80",
+]
+
+LEGACY_BATCH_FIELDS = [
+    "生产批号-输入",
+    "（磨床）上道生产记录",
+    "（检测）上道生产记录",
 ]
 
 DEPRECATED_VIEW_MARKERS = (
@@ -111,10 +132,23 @@ def main() -> int:
         ("主表核心字段齐全", len(missing) == 0, "缺失: " + ", ".join(missing) if missing else "OK"),
     )
 
-    per_view = [n for n in field_names if n.startswith("关联管控批_") or n.startswith("上道批号_")]
+    mistaken = [n for n in MISTAKEN_ADDED_FIELDS if n in field_names]
     checks.append(
-        ("per-view选批字段", len(per_view) >= 6, f"已有{len(per_view)}个: {', '.join(per_view[:4])}..."),
+        ("无误加 per-view 字段",
+         len(mistaken) == 0,
+         "应删除: " + ", ".join(mistaken) if mistaken else "OK"),
     )
+
+    legacy = [n for n in LEGACY_BATCH_FIELDS if n in field_names]
+    checks.append(
+        ("旧库批号字段齐全",
+         len(legacy) == 3,
+         f"已有: {', '.join(legacy)}"),
+    )
+
+    per_view = [n for n in field_names if n.startswith("关联管控批_") or n.startswith("上道批号_")]
+    if not mistaken:
+        checks.append(("无冗余 per-view 字段", len(per_view) == 0, f"残留 {len(per_view)} 个"))
 
     views = list_views(cfg, MAIN_TABLE)
     deprecated_visible = [
@@ -138,9 +172,16 @@ def main() -> int:
     confirmed = [
         r
         for r in main_rows
-        if extract_text(r.get("fields", {}).get("工序下发状态")) in ("已确认", "已报工", "已审核")
+        if extract_text(r.get("fields", {}).get("工序下发状态")) in ("已确认", "已审核")
     ]
-    checks.append(("主表有已确认/已报工记录", len(confirmed) > 0, f"{len(confirmed)}条"))
+    reported = [
+        r for r in main_rows if extract_text(r.get("fields", {}).get("工序下发状态")) == "已报工"
+    ]
+    checks.append(
+        ("主表有已确认记录(汇总用)",
+         len(confirmed) > 0,
+         f"已确认/已审核 {len(confirmed)} 条；仍已报工 {len(reported)} 条待品保确认"),
+    )
 
     summary = list_records(cfg, tables["batch_summary"])
     checks.append(("汇总表有数据", len(summary) > 0, f"{len(summary)}行"))

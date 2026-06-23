@@ -1,6 +1,25 @@
 # P1 收尾清单
 
-> P0 已完成 · 汇总脚本已跑通 · 按顺序打勾
+> P0 已完成 · 汇总脚本已跑通 · 按顺序打勾  
+> **执行总单：** `docs/v4-execution-sprint-cn.md` · **一键 Prompt：** `docs/openclaw-p1-sprint-prompt-cn.md`
+
+---
+
+## 自动验收（已通过 2026-06-23）
+
+```bash
+cd feishu-batch-summary-sync
+python3 verify_p1.py    # 6/6 PASS
+python3 verify_sprint.py  # 路线11 / 联动137 / 原因库46+ / 明细处置类型
+```
+
+| 自动项 | 状态 |
+| --- | --- |
+| 管控表、汇总、主表已确认 | ✅ |
+| 产品工序路线表 11 行 | ✅ |
+| 不良原因联动 137 行 | ✅ |
+| 不良明细表「处置类型」列 | ✅ API 已补 |
+| cron 8/12/20 | ⏳ 需在用户服务器部署 |
 
 ---
 

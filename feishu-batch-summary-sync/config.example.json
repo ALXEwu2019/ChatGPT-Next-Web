@@ -16,6 +16,10 @@
     "process": {
       "table_id": "tbl工序表ID",
       "lookup_fields": ["工序代码", "工序名称"]
+    },
+    "control": {
+      "table_id": "tbl管控表ID",
+      "lookup_fields": ["批号文本"]
     }
   },
   "summary_write": {

@@ -488,11 +488,11 @@ feishu-batch-summary-sync/
 
 ## 13. 协作节奏（当前）
 
-1. ~~§12 逐项拍板~~ ✓
-2. ~~P0 建库 + 汇总脚本跑通~~ ✓
-3. **P1 执行**：`docs/openclaw-p1-prompt-cn.md`（管控表、选批视图、对账）
+1. ~~P0 建库 + 汇总脚本~~ ✓
+2. **P1 收尾**：`docs/p1-completion-checklist-cn.md` + `docs/feishu-p1-manual-setup-cn.md`
+3. **P1 验收**：`python verify_p1.py` + 界面筛选手工项
 4. **定时同步**：`docs/p1-cron-setup-cn.md`（每天 8 / 12 / 20 点）
-5. **P2**：不良闭环；**PTJ92 另开**
+5. **P2**：`docs/openclaw-p2-prompt-cn.md`（不良闭环）
 
 ---
 

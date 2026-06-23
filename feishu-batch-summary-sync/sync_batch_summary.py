@@ -184,6 +184,7 @@ class LinkResolver:
     def __init__(self, client: FeishuClient, app_token: str, link_tables: dict[str, Any]):
         self._cache: dict[str, dict[str, str]] = {}
         self._reverse: dict[str, dict[str, str]] = {}
+        self.control_batch: dict[str, str] = {}
         for name, spec in link_tables.items():
             table_id = spec["table_id"]
             fields = spec.get("lookup_fields") or [spec.get("display_field", "")]
@@ -202,17 +203,85 @@ class LinkResolver:
             self._reverse[name] = reverse
             LOG.debug("Link table %s: %d records resolved", name, len(mapping))
 
+        control_spec = link_tables.get("control")
+        if control_spec:
+            for item in client.list_records(app_token, control_spec["table_id"]):
+                batch = extract_text(item.get("fields", {}).get("批号文本"))
+                if batch:
+                    self.control_batch[item["record_id"]] = batch
+            LOG.debug("Control batches: %d", len(self.control_batch))
+
     def resolve(self, table_name: str, value: Any) -> str:
         ids = extract_link_record_ids(value)
-        if not ids:
-            return extract_text(value)
-        mapping = self._cache.get(table_name, {})
-        return mapping.get(ids[0], "")
+        if ids:
+            mapping = self._cache.get(table_name, {})
+            hit = mapping.get(ids[0], "")
+            if hit:
+                return hit
+        return extract_text(value)
 
     def reverse_resolve(self, table_name: str, display_value: str) -> str:
         if not display_value:
             return ""
         return self._reverse.get(table_name, {}).get(display_value, "")
+
+    def batch_from_control_link(self, value: Any) -> str:
+        ids = extract_link_record_ids(value)
+        if ids and ids[0] in self.control_batch:
+            return self.control_batch[ids[0]]
+        return ""
+
+
+def build_record_batch_map(
+    raw_records: list[dict[str, Any]], link_resolver: LinkResolver | None
+) -> dict[str, str]:
+    """Resolve record_id -> batch_text including control/upstream links."""
+    id_to_batch: dict[str, str] = {}
+    control_keys = (
+        "关联管控批",
+        "关联管控批_STOPPER#2030",
+        "关联管控批_止动块#4050",
+    )
+    upstream_keys = (
+        "上道批号",
+        "上道批号_STOPPER#4050",
+        "上道批号_STOPPER#60",
+        "上道批号_STOPPER#70",
+        "上道批号_止动块#60",
+        "上道批号_止动块#70",
+        "上道批号_止动块#80",
+    )
+
+    for item in raw_records:
+        rid = item["record_id"]
+        fields = item.get("fields", {})
+        batch = extract_text(fields.get("批号文本")) or extract_text(fields.get("生产批号"))
+        if not batch and link_resolver:
+            for key in control_keys:
+                batch = link_resolver.batch_from_control_link(fields.get(key))
+                if batch:
+                    break
+        if batch:
+            id_to_batch[rid] = batch
+
+    for _ in range(len(raw_records) + 1):
+        changed = False
+        for item in raw_records:
+            rid = item["record_id"]
+            if rid in id_to_batch:
+                continue
+            fields = item.get("fields", {})
+            for key in upstream_keys:
+                for up_id in extract_link_record_ids(fields.get(key)):
+                    if up_id in id_to_batch:
+                        id_to_batch[rid] = id_to_batch[up_id]
+                        changed = True
+                        break
+                if rid in id_to_batch:
+                    break
+        if not changed:
+            break
+    return id_to_batch
 
 
 def extract_number(value: Any) -> float:
@@ -255,8 +324,10 @@ def parse_production_records(
     include_status: list[str],
     require_valid: bool,
     link_resolver: LinkResolver | None = None,
+    record_batch_map: dict[str, str] | None = None,
 ) -> list[ProductionRecord]:
     parsed: list[ProductionRecord] = []
+    record_batch_map = record_batch_map or {}
     for item in raw_records:
         fields = item.get("fields", {})
         status = extract_text(fields.get(field_map["status"]))
@@ -271,12 +342,16 @@ def parse_production_records(
         batch_text = extract_text(fields.get(field_map["batch_text"]))
         if not batch_text and "batch_text_fallback" in field_map:
             batch_text = extract_text(fields.get(field_map["batch_text_fallback"]))
+        if not batch_text:
+            batch_text = record_batch_map.get(item["record_id"], "")
 
         if link_resolver:
             product = link_resolver.resolve("product", fields.get(field_map["product"]))
             process_code = link_resolver.resolve(
                 "process", fields.get(field_map["process_code"])
             )
+            if not process_code:
+                process_code = extract_text(fields.get(field_map["process_code"]))
         else:
             product = extract_text(fields.get(field_map["product"]))
             process_code = extract_text(fields.get(field_map["process_code"]))
@@ -421,11 +496,13 @@ def run_sync(
         )
 
     link_resolver = None
+    record_batch_map: dict[str, str] = {}
     if not fixture_path and config.get("link_tables"):
         client = FeishuClient(feishu_cfg["app_id"], feishu_cfg["app_secret"])
         link_resolver = LinkResolver(
             client, feishu_cfg["base_app_token"], config["link_tables"]
         )
+        record_batch_map = build_record_batch_map(raw, link_resolver)
 
     records = parse_production_records(
         raw,
@@ -433,6 +510,7 @@ def run_sync(
         sync_cfg.get("include_status", ["已确认"]),
         sync_cfg.get("require_valid_quantities", True),
         link_resolver=link_resolver,
+        record_batch_map=record_batch_map,
     )
     LOG.info("Fetched %d raw records, %d eligible for aggregation", len(raw), len(records))
 

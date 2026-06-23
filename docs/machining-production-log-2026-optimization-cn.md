@@ -25,6 +25,7 @@
 | 管控表补 批号文本/工序代码/本工序下发数量 | ✅ |
 | 汇总表补 末次同步时间/同步批次号 | ✅ |
 | 脚本 | `feishu-batch-summary-sync/optimize_production_base.py` |
+| P1 数据对齐 | `configure_production_p1.py`（管控回填、区域列隐藏、已确认选项） |
 
 ---
 

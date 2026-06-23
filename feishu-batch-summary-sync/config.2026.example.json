@@ -52,7 +52,7 @@
     }
   },
   "sync": {
-    "include_status": ["已确认"],
+    "include_status": ["已确认", "已报工", "已审核"],
     "require_valid_quantities": true,
     "page_size": 500
   },

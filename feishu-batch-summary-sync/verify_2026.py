@@ -136,9 +136,11 @@ def main() -> int:
 
     main_rows = list_records(cfg, tables["production_log"])
     confirmed = [
-        r for r in main_rows if extract_text(r.get("fields", {}).get("工序下发状态")) == "已确认"
+        r
+        for r in main_rows
+        if extract_text(r.get("fields", {}).get("工序下发状态")) in ("已确认", "已报工", "已审核")
     ]
-    checks.append(("主表有已确认报工", len(confirmed) > 0, f"{len(confirmed)}条"))
+    checks.append(("主表有已确认/已报工记录", len(confirmed) > 0, f"{len(confirmed)}条"))
 
     summary = list_records(cfg, tables["batch_summary"])
     checks.append(("汇总表有数据", len(summary) > 0, f"{len(summary)}行"))

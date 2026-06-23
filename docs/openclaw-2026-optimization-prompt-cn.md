@@ -1,7 +1,9 @@
 # 2026 Base v4 优化 · 飞书 AI 一键 Prompt
 
 > **用法：** 先粘贴 `docs/openclaw-2026-context-supplement-cn.md` 全文，再粘贴下方 **BEGIN～END** 给飞书 AI。  
-> **目标 Base：** 机加工车间生产日志管理系统（新）2026（`P2MtbRCz1a0Pj8sAOtocrHb6ntf`）
+> **目标 Base：** 机加工车间生产日志管理系统（新）（`NiyZbKpKfae9x3sUP64cl9SFnRb`）
+
+**阶段 2（当前）：** 见 `docs/openclaw-2026-p1-view-filters-prompt-cn.md` 与 `docs/feishu-p1-manual-setup-2026-cn.md`
 
 ---
 

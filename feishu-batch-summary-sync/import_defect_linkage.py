@@ -107,12 +107,15 @@ def build_payload(
         if reason_name not in reason_map:
             raise KeyError(f"Row {idx}: unknown reason {reason_name}")
 
+        disp = row["默认处置类型"]
         payloads.append(
             {
                 "关联产品": [PRODUCT_MAP[product]],
                 "工序代码": [process_map[process_code]],
                 "不良原因": [reason_map[reason_name]],
-                "默认处置类型": row["默认处置类型"],
+                "默认处置类型": disp,
+                # 兼容错误建表：主字段「不良类型」与默认处置类型重复
+                "不良类型": disp,
                 "启用状态": row["启用状态"],
             }
         )

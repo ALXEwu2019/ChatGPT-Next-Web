@@ -1,0 +1,408 @@
+#!/usr/bin/env python3
+"""
+Sync batch-process yield summary from Feishu production log to summary table.
+
+Rules (v4 greenfield, section 12 confirmed):
+- Only records with status = 已确认
+- Source: 有效合格数量 / 有效报废数量
+- #2030: merge A1/A2 -> A, B1/B2 -> B before aggregation
+- #60/#70/#80: batch + product + process only
+- #4050: batch + product + process + MG area
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import logging
+import sys
+import uuid
+from collections import defaultdict
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+import requests
+
+LOG = logging.getLogger("sync_batch_summary")
+BASE_URL = "https://open.feishu.cn/open-apis"
+
+
+@dataclass
+class ProductionRecord:
+    record_id: str
+    batch_text: str
+    product: str
+    process_code: str
+    production_area: str
+    valid_qualified: float
+    valid_scrap: float
+    status: str
+
+
+@dataclass
+class SummaryRow:
+    batch_text: str
+    product: str
+    process_code: str
+    production_area: str
+    qualified_total: float
+    scrap_total: float
+    batch_process_key: str
+
+
+class FeishuClient:
+    def __init__(self, app_id: str, app_secret: str):
+        self.app_id = app_id
+        self.app_secret = app_secret
+        self._token: str | None = None
+
+    def _headers(self) -> dict[str, str]:
+        if not self._token:
+            self._token = self._fetch_token()
+        return {"Authorization": f"Bearer {self._token}"}
+
+    def _fetch_token(self) -> str:
+        resp = requests.post(
+            f"{BASE_URL}/auth/v3/tenant_access_token/internal",
+            json={"app_id": self.app_id, "app_secret": self.app_secret},
+            timeout=30,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        if data.get("code") != 0:
+            raise RuntimeError(f"Failed to get token: {data}")
+        return data["tenant_access_token"]
+
+    def list_records(
+        self, app_token: str, table_id: str, page_size: int = 500
+    ) -> list[dict[str, Any]]:
+        records: list[dict[str, Any]] = []
+        page_token: str | None = None
+        while True:
+            params: dict[str, Any] = {"page_size": page_size}
+            if page_token:
+                params["page_token"] = page_token
+            resp = requests.get(
+                f"{BASE_URL}/bitable/v1/apps/{app_token}/tables/{table_id}/records",
+                headers=self._headers(),
+                params=params,
+                timeout=60,
+            )
+            resp.raise_for_status()
+            payload = resp.json()
+            if payload.get("code") != 0:
+                raise RuntimeError(f"List records failed: {payload}")
+            data = payload["data"]
+            records.extend(data.get("items", []))
+            if not data.get("has_more"):
+                break
+            page_token = data.get("page_token")
+        return records
+
+    def list_summary_keys(
+        self, app_token: str, table_id: str, key_field: str, page_size: int = 500
+    ) -> dict[str, str]:
+        """Map batch_process_key -> record_id for upsert."""
+        mapping: dict[str, str] = {}
+        for item in self.list_records(app_token, table_id, page_size):
+            fields = item.get("fields", {})
+            key = extract_text(fields.get(key_field))
+            if key:
+                mapping[key] = item["record_id"]
+        return mapping
+
+    def create_records(
+        self, app_token: str, table_id: str, rows: list[dict[str, Any]]
+    ) -> None:
+        for i in range(0, len(rows), 500):
+            chunk = rows[i : i + 500]
+            resp = requests.post(
+                f"{BASE_URL}/bitable/v1/apps/{app_token}/tables/{table_id}/records/batch_create",
+                headers=self._headers(),
+                json={"records": [{"fields": r} for r in chunk]},
+                timeout=60,
+            )
+            resp.raise_for_status()
+            payload = resp.json()
+            if payload.get("code") != 0:
+                raise RuntimeError(f"Batch create failed: {payload}")
+
+    def update_records(
+        self, app_token: str, table_id: str, updates: list[dict[str, Any]]
+    ) -> None:
+        for i in range(0, len(updates), 500):
+            chunk = updates[i : i + 500]
+            resp = requests.post(
+                f"{BASE_URL}/bitable/v1/apps/{app_token}/tables/{table_id}/records/batch_update",
+                headers=self._headers(),
+                json={"records": chunk},
+                timeout=60,
+            )
+            resp.raise_for_status()
+            payload = resp.json()
+            if payload.get("code") != 0:
+                raise RuntimeError(f"Batch update failed: {payload}")
+
+
+def load_config(path: Path) -> dict[str, Any]:
+    with path.open(encoding="utf-8") as f:
+        return json.load(f)
+
+
+def extract_text(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value.strip()
+    if isinstance(value, (int, float)):
+        return str(value)
+    if isinstance(value, list) and value:
+        first = value[0]
+        if isinstance(first, dict):
+            return str(first.get("text") or first.get("name") or "").strip()
+        return str(first).strip()
+    if isinstance(value, dict):
+        return str(value.get("text") or value.get("name") or "").strip()
+    return str(value).strip()
+
+
+def extract_number(value: Any) -> float:
+    if value is None or value == "":
+        return 0.0
+    if isinstance(value, (int, float)):
+        return float(value)
+    text = extract_text(value)
+    if not text:
+        return 0.0
+    return float(text)
+
+
+def resolve_summary_area(
+    process_code: str, production_area: str, region_merge: dict[str, dict[str, str]]
+) -> str:
+    merge_map = region_merge.get(process_code, {})
+    if not merge_map:
+        return production_area
+    return merge_map.get(production_area, production_area)
+
+
+def get_aggregation_keys(
+    process_code: str, config: dict[str, Any]
+) -> list[str]:
+    by_process = config.get("aggregation_by_process", {})
+    return by_process.get(process_code, config.get("default_aggregation", []))
+
+
+def build_batch_key(row: dict[str, str], process_code: str, config: dict[str, Any]) -> str:
+    formats = config.get("batch_key_format", {})
+    template = formats.get(process_code, formats.get("default", "{batch_text}-{process_code}"))
+    fmt_row = {**row, "process_code": process_code}
+    return template.format(**fmt_row)
+
+
+def parse_production_records(
+    raw_records: list[dict[str, Any]],
+    field_map: dict[str, str],
+    include_status: list[str],
+    require_valid: bool,
+) -> list[ProductionRecord]:
+    parsed: list[ProductionRecord] = []
+    for item in raw_records:
+        fields = item.get("fields", {})
+        status = extract_text(fields.get(field_map["status"]))
+        if status not in include_status:
+            continue
+
+        valid_q = extract_number(fields.get(field_map["valid_qualified"]))
+        valid_s = extract_number(fields.get(field_map["valid_scrap"]))
+        if require_valid and fields.get(field_map["valid_qualified"]) in (None, ""):
+            continue
+
+        parsed.append(
+            ProductionRecord(
+                record_id=item["record_id"],
+                batch_text=extract_text(fields.get(field_map["batch_text"])),
+                product=extract_text(fields.get(field_map["product"])),
+                process_code=extract_text(fields.get(field_map["process_code"])),
+                production_area=extract_text(fields.get(field_map["production_area"])),
+                valid_qualified=valid_q,
+                valid_scrap=valid_s,
+                status=status,
+            )
+        )
+    return parsed
+
+
+def aggregate_records(
+    records: list[ProductionRecord], config: dict[str, Any]
+) -> list[SummaryRow]:
+    region_merge = config.get("region_merge", {})
+    buckets: dict[tuple[str, ...], dict[str, Any]] = defaultdict(
+        lambda: {"qualified": 0.0, "scrap": 0.0, "meta": {}}
+    )
+
+    for rec in records:
+        if not rec.batch_text or not rec.process_code:
+            continue
+
+        summary_area = resolve_summary_area(
+            rec.process_code, rec.production_area, region_merge
+        )
+        dim_values = {
+            "batch_text": rec.batch_text,
+            "product": rec.product,
+            "process_code": rec.process_code,
+            "production_area": rec.production_area,
+            "summary_area": summary_area,
+        }
+        agg_keys = get_aggregation_keys(rec.process_code, config)
+        bucket_key = tuple(dim_values[k] for k in agg_keys)
+        buckets[bucket_key]["qualified"] += rec.valid_qualified
+        buckets[bucket_key]["scrap"] += rec.valid_scrap
+        buckets[bucket_key]["meta"] = dim_values
+
+    rows: list[SummaryRow] = []
+    for bucket in buckets.values():
+        meta = bucket["meta"]
+        process_code = meta["process_code"]
+        summary_area = meta["summary_area"]
+        area_for_output = (
+            summary_area
+            if process_code in region_merge
+            else meta["production_area"]
+        )
+        key_parts = {
+            **meta,
+            "summary_area": summary_area,
+            "production_area": meta["production_area"],
+        }
+        batch_key = build_batch_key(key_parts, process_code, config)
+        rows.append(
+            SummaryRow(
+                batch_text=meta["batch_text"],
+                product=meta["product"],
+                process_code=process_code,
+                production_area=area_for_output,
+                qualified_total=round(bucket["qualified"], 4),
+                scrap_total=round(bucket["scrap"], 4),
+                batch_process_key=batch_key,
+            )
+        )
+    rows.sort(key=lambda r: r.batch_process_key)
+    return rows
+
+
+def summary_to_fields(
+    row: SummaryRow, field_map: dict[str, str], sync_run_id: str, now_iso: str
+) -> dict[str, Any]:
+    return {
+        field_map["batch_text"]: row.batch_text,
+        field_map["product"]: row.product,
+        field_map["process_code"]: row.process_code,
+        field_map["production_area"]: row.production_area,
+        field_map["qualified_total"]: row.qualified_total,
+        field_map["scrap_total"]: row.scrap_total,
+        field_map["batch_process_key"]: row.batch_process_key,
+        field_map["last_sync_time"]: now_iso,
+        field_map["sync_run_id"]: sync_run_id,
+    }
+
+
+def run_sync(config: dict[str, Any], dry_run: bool = False) -> list[SummaryRow]:
+    feishu_cfg = config["feishu"]
+    tables = config["tables"]
+    pl_fields = config["field_mapping"]["production_log"]
+    sum_fields = config["field_mapping"]["batch_summary"]
+    sync_cfg = config.get("sync", {})
+
+    client = FeishuClient(feishu_cfg["app_id"], feishu_cfg["app_secret"])
+    app_token = feishu_cfg["base_app_token"]
+
+    raw = client.list_records(
+        app_token, tables["production_log"], sync_cfg.get("page_size", 500)
+    )
+    records = parse_production_records(
+        raw,
+        pl_fields,
+        sync_cfg.get("include_status", ["已确认"]),
+        sync_cfg.get("require_valid_quantities", True),
+    )
+    LOG.info("Fetched %d raw records, %d eligible for aggregation", len(raw), len(records))
+
+    summary_rows = aggregate_records(records, config)
+    LOG.info("Aggregated into %d summary rows", len(summary_rows))
+
+    if dry_run:
+        return summary_rows
+
+    existing = client.list_summary_keys(
+        app_token,
+        tables["batch_summary"],
+        sum_fields["batch_process_key"],
+        sync_cfg.get("page_size", 500),
+    )
+    sync_run_id = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S") + "-" + uuid.uuid4().hex[:8]
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    to_create: list[dict[str, Any]] = []
+    to_update: list[dict[str, Any]] = []
+    for row in summary_rows:
+        fields = summary_to_fields(row, sum_fields, sync_run_id, now_iso)
+        record_id = existing.get(row.batch_process_key)
+        if record_id:
+            to_update.append({"record_id": record_id, "fields": fields})
+        else:
+            to_create.append(fields)
+
+    if to_create:
+        client.create_records(app_token, tables["batch_summary"], to_create)
+        LOG.info("Created %d summary records", len(to_create))
+    if to_update:
+        client.update_records(app_token, tables["batch_summary"], to_update)
+        LOG.info("Updated %d summary records", len(to_update))
+
+    return summary_rows
+
+
+def print_dry_run(rows: list[SummaryRow]) -> None:
+    print(f"{'批工序键':<40} {'合格':>10} {'报废':>10}")
+    print("-" * 64)
+    for row in rows:
+        print(
+            f"{row.batch_process_key:<40} {row.qualified_total:>10.2f} {row.scrap_total:>10.2f}"
+        )
+    print(f"\nTotal summary rows: {len(rows)}")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Sync Feishu batch-process yield summary")
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=Path(__file__).with_name("config.json"),
+        help="Path to config.json",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print aggregated summary without writing to Feishu",
+    )
+    parser.add_argument("-v", "--verbose", action="store_true")
+    args = parser.parse_args()
+
+    logging.basicConfig(
+        level=logging.DEBUG if args.verbose else logging.INFO,
+        format="%(asctime)s %(levelname)s %(message)s",
+    )
+
+    config = load_config(args.config)
+    rows = run_sync(config, dry_run=args.dry_run)
+    if args.dry_run:
+        print_dry_run(rows)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

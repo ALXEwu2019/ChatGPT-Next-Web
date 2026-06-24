@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import sys
 import uuid
 from collections import defaultdict
@@ -148,7 +149,37 @@ class FeishuClient:
 
 def load_config(path: Path) -> dict[str, Any]:
     with path.open(encoding="utf-8") as f:
-        return json.load(f)
+        cfg = json.load(f)
+    local = path.with_name("config.local.json")
+    if local.exists():
+        with local.open(encoding="utf-8") as f:
+            local_cfg = json.load(f)
+        for key, val in local_cfg.items():
+            if isinstance(val, dict) and isinstance(cfg.get(key), dict):
+                cfg[key].update(val)
+            else:
+                cfg[key] = val
+    feishu = cfg.setdefault("feishu", {})
+    if os.environ.get("FEISHU_APP_ID"):
+        feishu["app_id"] = os.environ["FEISHU_APP_ID"]
+    if os.environ.get("FEISHU_APP_SECRET"):
+        feishu["app_secret"] = os.environ["FEISHU_APP_SECRET"]
+    if os.environ.get("FEISHU_BASE_APP_TOKEN"):
+        feishu["base_app_token"] = os.environ["FEISHU_BASE_APP_TOKEN"]
+    return cfg
+
+
+def feishu_credentials_ok(cfg: dict[str, Any]) -> bool:
+    feishu = cfg.get("feishu", {})
+    app_id = str(feishu.get("app_id", ""))
+    app_secret = str(feishu.get("app_secret", ""))
+    if not app_id or not app_secret:
+        return False
+    if app_id.startswith("YOUR_") or app_secret.startswith("YOUR_"):
+        return False
+    if app_id == "cli_xxxxxxxx" or app_secret == "your_app_secret":
+        return False
+    return True
 
 
 def extract_text(value: Any) -> str:

@@ -57,7 +57,7 @@ from setup_defect_workflow import (
     print_urls,
 )
 from setup_role_entrypoints import option_triplet, patch_view_filter
-from sync_batch_summary import load_config
+from sync_batch_summary import feishu_credentials_ok, load_config
 
 WIKI = f"https://kcnfxml9dtzq.feishu.cn/wiki/{V4_APP}"
 
@@ -276,10 +276,14 @@ def verify_views(client: Client) -> list[str]:
     return lines
 
 
-def run(audit_only: bool, dry_run: bool, skip_e2e: bool) -> int:
-    cfg = load_config(Path(__file__).with_name("config.json"))
-    if cfg["feishu"]["app_id"].startswith("YOUR_"):
-        print("ERROR: 请先在 config.json 配置 feishu.app_id / app_secret")
+def run(audit_only: bool, dry_run: bool, skip_e2e: bool, config_path: Path) -> int:
+    cfg = load_config(config_path)
+    if not feishu_credentials_ok(cfg):
+        print("ERROR: 请配置飞书凭证（任选其一）：")
+        print("  1) config.json 或 config.local.json 中 feishu.app_id / app_secret")
+        print("  2) 环境变量 FEISHU_APP_ID / FEISHU_APP_SECRET")
+        print("  模板: cp config.v4.wiki.example.json config.json")
+        print("  或:   cp config.local.example.json config.local.json  # 仅凭证，可不入库")
         return 1
 
     client = Client(cfg["feishu"]["app_id"], cfg["feishu"]["app_secret"])
@@ -343,12 +347,13 @@ def run(audit_only: bool, dry_run: bool, skip_e2e: bool) -> int:
 
 def main() -> int:
     p = argparse.ArgumentParser(description="按 2026 不良/返工表修复创建 V4")
+    p.add_argument("--config", type=Path, default=Path(__file__).with_name("config.json"))
     p.add_argument("--audit-only", action="store_true", help="只审计源与 V4 字段差异")
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--skip-e2e", action="store_true")
     args = p.parse_args()
     try:
-        return run(args.audit_only, args.dry_run, args.skip_e2e)
+        return run(args.audit_only, args.dry_run, args.skip_e2e, args.config)
     except Exception as exc:
         print(f"ERROR: {exc}")
         return 1

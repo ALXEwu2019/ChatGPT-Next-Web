@@ -37,6 +37,7 @@ python3 advance_v4_greenfield.py --dry-run   # 预览变更
 | 3 个重复止动块简写视图 | ✅ **已删除** |
 | 批工序汇总 sync | ✅ |
 | **P1 界面：8 视图筛选 + 合格合计查找** | ✅ **2026-06-23 人工验收** |
+| **联动四视图** | ✅ **返工23/报废87/历史27**（启用视图分组展示 119 行） |
 
 ### P1 人工验收记录
 
@@ -82,18 +83,22 @@ python3 advance_v4_greenfield.py --dry-run   # 预览变更
 
 137 条数据未修改。详见 `feishu-defect-linkage-views-setup-cn.md` 第八节。
 
-### 4.3 cron 部署（当前优先，你的服务器）
+### 4.3 cron 部署（⏳ 交由国宝执行）
 
-云 Agent **无 crontab**，需在本机/服务器：
+云 Agent 环境无 crontab，**请国宝在能长期开机的机器部署**。
+
+**国宝执行单：** `docs/guobao-cron-deploy-cn.md`  
+**协作总单：** `docs/handoff-guobao-execution-cn.md`
 
 ```bash
 cd feishu-batch-summary-sync
-cp config.v4.wiki.example.json config.json   # 填入凭证
+cp config.v4.wiki.example.json config.json   # 国宝填入凭证
 chmod +x run_sync.sh
-crontab -e   # 粘贴 cron.example 三行（8/12/20 点）
+python3 verify_p1.py && python3 sync_batch_summary.py -v
+crontab -e   # 8 / 12 / 20 点，见 cron.example
 ```
 
-详见 `p1-cron-setup-cn.md`。
+通用说明：`docs/p1-cron-setup-cn.md`
 
 ### 4.4 P2 不良闭环（P1 通过后）
 

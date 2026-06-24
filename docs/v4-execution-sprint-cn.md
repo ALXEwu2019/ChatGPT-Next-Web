@@ -13,7 +13,7 @@
 | P0 建库+脚本 | ✅ 完成 | ✅ 完成 |
 | P1 选批+对账 | ✅ 全部完成（脚本 + 界面） | ✅ **2026-06-23 验收** |
 | 质量配置 | ✅ 原因库+联动137行 | ✅ **四视图 2026-06-23 验收** |
-| cron | ⏳ 云环境无 crontab | ⏳ **你的服务器部署** |
+| cron | ⏳ | ⏳ **国宝执行**（`guobao-cron-deploy-cn.md`） |
 | P2 不良闭环 | ✅ 明细表+处置类型字段 | ⏳ 状态机+公式+测试 |
 | 旧生产 Base | ✅ 审计+remediate | 独立维护，见 `production-base-v4-audit-cn.md` |
 
@@ -56,15 +56,19 @@ python3 sync_batch_summary.py --dry-run -v
 
 ---
 
-## 第三步：cron 部署（当前，你的服务器）
+## 第三步：cron 部署（⏳ 国宝执行）
+
+**国宝专用执行单：** `docs/guobao-cron-deploy-cn.md`
 
 ```bash
 cd feishu-batch-summary-sync
+cp config.v4.wiki.example.json config.json
 chmod +x run_sync.sh
-crontab -e   # 粘贴 cron.example 三行
+python3 verify_p1.py && python3 sync_batch_summary.py -v
+crontab -e   # 粘贴 cron.example 三行（改路径）
 ```
 
-详见 `docs/p1-cron-setup-cn.md`。
+通用说明：`docs/p1-cron-setup-cn.md`
 
 ---
 

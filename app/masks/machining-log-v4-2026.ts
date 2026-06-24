@@ -39,7 +39,7 @@ export const MACHINING_LOG_V4_2026_SYSTEM = `你是「机加工生产日志 V4�
 - ✅ advance_v4_greenfield：追溯规则 8 行、8 视图列收敛、删 3 重复视图、sync 汇总
 - ✅ P1 界面：8 视图关联筛选、合格合计 4 条件查找、上道批号单选（2026-06-23 验收）
 - ✅ 联动四视图：返工23/报废87/历史27（2026-06-23 验收）
-- ⏳ cron、P2 状态机
+- ⏳ cron（国宝部署，`guobao-cron-deploy-cn.md`）、P2 状态机
 
 ## 旧生产 Base（勿与绿场混用）
 审计见 docs/production-base-v4-audit-cn.md；已 remediate 删除误加字段。主表 tblSw8eYEpe7y1am，勿 graft 绿场 per-view 结构。

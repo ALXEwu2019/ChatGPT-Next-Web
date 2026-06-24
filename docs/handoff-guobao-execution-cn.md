@@ -1,121 +1,51 @@
 # 国宝 · 机加工生产日志 v4 协作执行单
 
-> **致国宝：** 请按本单参与 v4 绿场落地。脚本与数据侧已由云 Agent 完成，**你需要在飞书界面 + 本机服务器**完成剩余配置。  
-> **协作对象：** 项目负责人（把本单转发给国宝即可）  
-> **飞书应用：** 机加工生产日志 v4  
-> **预计耗时：** 第 1 天约 40 分钟（P1+视图）；cron 约 10 分钟
+> **致国宝：** 请按本单参与 v4 绿场落地。  
+> **飞书应用：** [机加工生产日志 V4 Wiki](https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblXr4h68tqh2HDy&view=vewT0WgVD1)  
+> **当前任务：** **任务 C · cron 定时汇总部署**（约 15 分钟）
 
 ---
 
-## 一、背景（30 秒读懂）
+## 一、进度总览
 
-我们在建 **全新** 飞书多维表格「机加工生产日志 v4」，与旧系统完全隔离。
-
-**核心规则：**
-
-- 批号归生产，追溯号归质量  
-- 首道选 **管控批**，下道选 **上道批号**  
-- 汇总由脚本写入，不用飞书公式聚合  
-- STOPPER：#2030→#4050→#60→#70；止动块：#4050→#60→#70→#80  
-
-**你不需要：** 重建应用、改脚本代码、动旧 Base。
-
----
-
-## 二、已完成（勿重复做）
-
-| 项 | 状态 |
-| --- | --- |
-| P0 建表（主表、汇总、管控、产品、工序、路线） | ✅ |
-| 汇总脚本 `sync_batch_summary.py` + 测试 | ✅ |
-| 产品工序路线表 | ✅ 11 行 |
-| 不良原因库 | ✅ 46 条 |
-| 不良原因联动规则表 | ✅ 137 条（数据已写入） |
-| 不良明细表「处置类型」列 | ✅ |
-| 自动验收 | ✅ `verify_p1.py` 6/6、`verify_sprint.py` 7/7 |
-
----
-
-## 三、国宝的任务清单（请按顺序打勾）
-
-### 任务 A · P1 飞书配置（必做，约 30 分钟）
-
-**做法：** 打开飞书 AI，把下面仓库文件 **全文复制** 粘贴给它执行：
-
-- 文件：`docs/openclaw-p1-sprint-prompt-cn.md`  
-- 或 GitHub 上本 PR 分支 `cursor/machining-production-log-ad82` 同路径  
-
-**内容包括：**
-
-1. **6 个下道视图**上道批号筛选（已确认 + 上道工序；**不要**有效合格>0）  
-2. **2 个首道视图**关联管控批筛选（已下发）  
-3. 上道批号改为 **单选**（取消允许多条）  
-4. 止动块视图加 **产品=止动块**  
-5. 各视图 **生产批号只读**  
-6. 管控表 **合格合计** 4 条件查找（含生产区域）  
-
-**详细手工步骤（AI 做不好时对照）：** `docs/feishu-p1-manual-setup-cn.md`
-
-**验收：**
-
-- [ ] STOPPER·#4050 上道能筛出 #2030 已确认批（如 S-TEST-A）  
-- [ ] 首道 #2030 能选到「已下发」管控批  
-- [ ] 管控表 S-TEST-A 行「合格合计」不为 0  
-- [ ] 截图 1～2 张发群里  
-
----
-
-### 任务 B · 联动规则四视图（必做，约 10 分钟）
-
-**指南：** `docs/feishu-defect-linkage-views-setup-cn.md`
-
-在 **不良原因联动规则表** 配置 4 个视图（数据已有，只设筛选）：
-
-| 视图名 | 筛选 | 应有行数 |
+| 任务 | 内容 | 状态 |
 | --- | --- | --- |
-| 启用·按产品工序 | 启用状态=启用 | **110** |
-| 返工原因 | 启用 + 不良类型=返工 | **23** |
-| 报废原因 | 启用 + 不良类型=报废 | **87** |
-| 历史·止动块#2030 | 止动块 + #2030 | **27** |
-
-**注意：** 处置字段叫 **「不良类型」**，不是「默认处置类型」。
-
-**验收：**
-
-- [ ] 四个视图行数与上表一致  
-- [ ] 截图默认视图 3 行发群里  
+| A | P1 飞书配置（8 视图筛选、合格合计） | ✅ 2026-06-23 已完成 |
+| B | 联动规则四视图（110/23/87/27） | ✅ 2026-06-23 已完成 |
+| **C** | **服务器 cron（8/12/20 点汇总）** | **⏳ 请国宝执行** |
+| D | P2 不良闭环 | ⏳ C 完成后启动 |
 
 ---
 
-### 任务 C · 服务器 cron（必做，约 10 分钟）
+## 二、国宝当前任务：cron 部署
 
-在 **能长期开机的机器**（办公室电脑/服务器）部署定时汇总：
+**请打开并按步骤执行：** **`docs/guobao-cron-deploy-cn.md`**
+
+### 快速摘要
+
+1. 在能长期开机的机器拉分支 `cursor/machining-production-log-ad82`
+2. `feishu-batch-summary-sync/` 下配置 `config.json`（用 `config.v4.wiki.example.json` 模板）
+3. 试跑：`python3 verify_p1.py` → `python3 sync_batch_summary.py -v`
+4. 安装定时任务：每天 **08:00 / 12:00 / 20:00** 执行 `run_sync.sh`（Linux）或 `run_sync.bat`（Windows）
 
 ```bash
 cd feishu-batch-summary-sync
-# 确认 config.json 已填 app_id / app_secret / table_id
+cp config.v4.wiki.example.json config.json   # 填入 app_id / app_secret
 chmod +x run_sync.sh
 python3 verify_p1.py
-python3 sync_batch_summary.py --dry-run -v
-python3 sync_batch_summary.py   # 先手动跑通一次
-
-crontab -e
-# 粘贴以下三行（路径改成实际目录）：
-# 0 8 * * *  cd /你的路径/feishu-batch-summary-sync && ./run_sync.sh
-# 0 12 * * * cd /你的路径/feishu-batch-summary-sync && ./run_sync.sh
-# 0 20 * * * cd /你的路径/feishu-batch-summary-sync && ./run_sync.sh
+python3 sync_batch_summary.py -v
+crontab -e   # 粘贴 cron.example 三行，改路径
 ```
-
-详见：`docs/p1-cron-setup-cn.md`
 
 **验收：**
 
 - [ ] `logs/sync_batch_summary.log` 有成功记录  
-- [ ] 把 crontab 三行截图发群里  
+- [ ] crontab 或 Windows 任务计划已安装  
+- [ ] 截图发群  
 
 ---
 
-### 任务 D · P2 启动（A+B 完成后）
+## 三、任务 D · P2（cron 完成后）
 
 把 `docs/openclaw-p2-prompt-cn.md` 全文给飞书 AI：
 
@@ -127,17 +57,16 @@ crontab -e
 
 ---
 
-## 四、遇到问题找谁 / 怎么问
+## 四、遇到问题
 
 | 现象 | 处理 |
 | --- | --- |
-| 上道筛选「确定」灰色 | 去掉「有效合格>0」；工序用点选 #2030 等 |
-| 联动视图 0 行 | 筛选字段改用 **不良类型**，不是默认处置类型 |
-| 合格合计为 0 | 先跑 `python3 sync_batch_summary.py`，再查 4 条件是否含生产区域 |
-| 脚本报错 | 把终端完整输出 + `config.json` 是否填好发给项目负责人 |
+| 脚本报错 | 终端完整输出 + 确认 `config.json` 已填，发给项目负责人 |
+| cron 没跑 | 核对 `crontab -l` 路径是否与 `config.json` 同目录 |
+| 凭证不知道填什么 | 向项目负责人索取 app_id / app_secret（勿发群） |
 
 **仓库分支：** `cursor/machining-production-log-ad82`  
-**总导航：** `docs/v4-execution-sprint-cn.md`
+**总导航：** `docs/v4-wiki-full-execution-cn.md`
 
 ---
 
@@ -145,13 +74,13 @@ crontab -e
 
 ```
 国宝 v4 执行回报：
-- 任务 A P1 视图：完成 / 未完成（问题：___）
-- 任务 B 联动四视图：110/23/87/27 是否一致：是 / 否
-- 任务 C cron：已部署 / 未部署（机器：___）
+- 任务 A P1 视图：✅ 已完成
+- 任务 B 联动四视图：✅ 已完成（返工23/报废87/历史27）
+- 任务 C cron：完成 / 未完成（机器：___，路径：___）
 - 任务 D P2：未开始 / 进行中 / 已完成
-- 附件：截图 ___ 张
+- 附件：cron 截图 ___ 张、sync 日志末 10 行
 ```
 
 ---
 
-*协作单 v1 · 机加工生产日志 v4 绿场*
+*协作单 v2 · cron 交由国宝执行*

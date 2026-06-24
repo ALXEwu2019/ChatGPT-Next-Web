@@ -67,7 +67,7 @@ chmod +x run_sync.sh
 | 优先级 | 任务 | 状态 | 文档 |
 | --- | --- | --- | --- |
 | 1 | 联动四视图 | ✅ 2026-06-23 | `feishu-defect-linkage-views-setup-cn.md` |
-| 2 | cron 部署 | ⏳ | `p1-cron-setup-cn.md` |
+| 2 | cron 部署 | ⏳ 国宝 | `guobao-cron-deploy-cn.md` |
 | 3 | P2 不良闭环 | ⏳ | `openclaw-p2-prompt-cn.md` |
 
 ---

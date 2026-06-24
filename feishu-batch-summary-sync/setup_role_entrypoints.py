@@ -22,8 +22,8 @@ WIKI = "https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d"
 STATUS_PENDING_REWORK = "optsYMqMN1"  # 待返工
 STATUS_PENDING_QA = "optghoBanu"  # 待品保确认
 
-# 不良明细·状态
-DEFECT_STATUS_PENDING = "optSHJVG5d"  # 待返工
+# 不良明细·状态（option_id 会随字段重建变化，筛选用动态解析）
+DEFECT_STATUS_PENDING = "optyYsQQd9"  # 待返工（当前实测，仅作文档参考）
 
 # 操作工：只保留扫码/填单必要列（公式只读列尽量隐藏）
 OPERATOR_KEEP = {
@@ -102,15 +102,24 @@ DEFECT_QA_KEEP = {
 
 DEFECT_LEADER_VIEW = "vewy8lBInU"  # 班组长·待返工
 DEFECT_LEADER_KEEP = {
-    "明细编号",
     "关联生产记录",
     "生产批号",
-    "不良数量",
+    "产品",
+    "工序代码",
+    "实收不良数量",
     "不良原因",
     "处置类型",
-    "状态",
+    "不良类型",
+    "登记人",
+    "通知时间",
+    "返工任务状态",
     "返工后合格数",
     "返工后报废数",
+    "返工人",
+    "确认人",
+    "备注",
+    "状态",
+    "不良数量",
 }
 
 # 三角色入口清单（文档/验收输出）
@@ -131,6 +140,47 @@ ENTRYPOINTS = [
     ("品保", "品保·不良填报", DEFECT, DEFECT_QA_VIEW),
     ("品保", "品保·待确认", MAIN, QA_MAIN_VIEW),
 ]
+
+
+def option_triplet(fields: list[dict], field_name: str, option_name: str) -> tuple[str, int, str]:
+    field = next((f for f in fields if f["field_name"] == field_name), None)
+    if not field:
+        raise RuntimeError(f"missing field: {field_name}")
+    for opt in field.get("property", {}).get("options", []):
+        if opt["name"] == option_name:
+            return field["field_id"], field["type"], opt["id"]
+    raise RuntimeError(f"missing option {field_name}={option_name}")
+
+
+def patch_defect_leader_filter(client: Client, dry_run: bool) -> str:
+    """班组长·待返工：处置类型=返工 且 状态=待返工。"""
+    fields = client.list_fields(DEFECT)
+    conditions: list[dict] = []
+    for field_name, option_name in (("处置类型", "返工"), ("状态", "待返工")):
+        try:
+            fid, ftype, oid = option_triplet(fields, field_name, option_name)
+            conditions.append(
+                {
+                    "field_id": fid,
+                    "field_type": ftype,
+                    "operator": "is",
+                    "value": json.dumps([oid]),
+                }
+            )
+        except RuntimeError:
+            continue
+    if not conditions:
+        return f"FAIL filter {DEFECT_LEADER_VIEW}: no filter fields"
+    body = {"property": {"filter_info": {"conjunction": "and", "conditions": conditions}}}
+    if dry_run:
+        return f"[dry-run] filter {DEFECT_LEADER_VIEW}: {len(conditions)} conditions"
+    resp = client.call(
+        "PATCH",
+        f"/bitable/v1/apps/{APP}/tables/{DEFECT}/views/{DEFECT_LEADER_VIEW}",
+        json=body,
+    )
+    ok = resp.get("code") == 0
+    return f"{'filter ok' if ok else 'FAIL filter'} {DEFECT_LEADER_VIEW}: {resp.get('msg', '')}"
 
 
 def patch_view_filter(
@@ -183,21 +233,13 @@ def setup_leader_qa_views(client: Client, dry_run: bool) -> list[str]:
     status_fid = next(
         f["field_id"] for f in client.list_fields(MAIN) if f["field_name"] == "工序下发状态"
     )
-    defect_status_fid = next(
-        f["field_id"] for f in client.list_fields(DEFECT) if f["field_name"] == "状态"
-    )
     lines.append(
         patch_view_filter(client, MAIN, LEADER_MAIN_VIEW, status_fid, STATUS_PENDING_REWORK, dry_run)
     )
-    # 品保·待确认 filter already set in Feishu; re-apply for idempotency
     lines.append(
         patch_view_filter(client, MAIN, QA_MAIN_VIEW, status_fid, STATUS_PENDING_QA, dry_run)
     )
-    lines.append(
-        patch_view_filter(
-            client, DEFECT, DEFECT_LEADER_VIEW, defect_status_fid, DEFECT_STATUS_PENDING, dry_run
-        )
-    )
+    lines.append(patch_defect_leader_filter(client, dry_run))
     return lines
 
 

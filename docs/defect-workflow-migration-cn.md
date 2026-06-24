@@ -78,7 +78,26 @@
 
 ---
 
-## 五、一键配置与验收
+## 五、班组长·待返工（不良明细表）
+
+| 项 | 值 |
+|----|-----|
+| 视图 | **班组长·待返工** `vewy8lBInU` |
+| 筛选 | **处置类型 = 返工** 且 **状态 = 待返工** |
+| 链接 | [打开](https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblMtQ4aEwlzuhWs&view=vewy8lBInU) |
+
+从 2026 Base 导入字段后，若 **处置类型** 误出现日期选项（如 `2026/06/22 15:54`），或视图筛选丢失，执行：
+
+```bash
+cd feishu-batch-summary-sync
+python3 remediate_defect_leader_view.py
+```
+
+脚本会：清理 **处置类型** 选项（仅保留返工/报废）、确保 **状态** 字段、收敛视图列、重建双条件筛选（须带 `field_type`）。
+
+---
+
+## 六、一键配置与验收
 
 ```bash
 cd feishu-batch-summary-sync

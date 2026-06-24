@@ -14,7 +14,7 @@
 | P1 选批+对账 | ✅ 全部完成（脚本 + 界面） | ✅ **2026-06-23 验收** |
 | 质量配置 | ✅ 原因库+联动137行 | ✅ **四视图 2026-06-23 验收** |
 | cron | ⏳ | ⏳ **国宝执行**（`guobao-cron-deploy-cn.md`） |
-| P2 不良闭环 | ✅ 明细表+处置类型字段 | ⏳ 状态机+公式+测试 |
+| P2 不良闭环 | ✅ 基础配置+流程测试 | ✅ **2026-06-23 验收** |
 | 旧生产 Base | ✅ 审计+remediate | 独立维护，见 `production-base-v4-audit-cn.md` |
 
 ---
@@ -72,10 +72,9 @@ crontab -e   # 粘贴 cron.example 三行（改路径）
 
 ---
 
-## 第四步：P2 不良闭环（P1 通过后）
+## 第四步：~~P2 不良闭环~~ ✅ 已完成
 
-**Prompt：** `docs/openclaw-p2-prompt-cn.md`  
-**公式修复：** `docs/feishu-p2-formula-fix-cn.md`
+验收记录：`docs/p2-completion-record-cn.md` · 自动验收：`python3 verify_p2.py`
 
 ---
 
@@ -85,7 +84,7 @@ crontab -e   # 粘贴 cron.example 三行（改路径）
 cd feishu-batch-summary-sync
 python3 verify_p1.py
 python3 verify_sprint.py
-python3 advance_v4_greenfield.py --dry-run
+python3 verify_p2.py
 ```
 
 ---

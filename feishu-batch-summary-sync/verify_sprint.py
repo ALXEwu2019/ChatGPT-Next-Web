@@ -132,8 +132,9 @@ def main() -> int:
 
     print("-" * 50)
     print("P1 界面：✅ 已验收（2026-06-23）")
-    print("联动四视图：✅ 已验收（返工23/报废87/历史27；启用视图分组展示119行）")
-    print("待完成：cron、P2 状态机")
+    print("联动四视图：✅ 已验收（返工23/报废87/历史27）")
+    print("P2 质量闭环：✅ 基础配置已验收（见 verify_p2.py / p2-completion-record-cn.md）")
+    print("待完成：国宝 cron 部署（guobao-cron-deploy-cn.md）")
     return 0 if ok else 1
 
 

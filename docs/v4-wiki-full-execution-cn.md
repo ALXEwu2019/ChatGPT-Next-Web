@@ -1,7 +1,7 @@
 # 机加工生产日志 V4 绿场 · 完整推进单（Wiki 主战场）
 
 > **入口链接：** [机加工生产日志 V4](https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblXr4h68tqh2HDy&view=vewT0WgVD1)  
-> **更新：** 2026-06-23 · P1 ✅ · 联动四视图 ✅ · verify_p1 **6/6** · verify_sprint **7/7**
+> **更新：** P1 ✅ · 联动四视图 ✅ · **P2 ✅** · cron ⏳ 国宝
 
 ---
 
@@ -37,7 +37,8 @@ python3 advance_v4_greenfield.py --dry-run   # 预览变更
 | 3 个重复止动块简写视图 | ✅ **已删除** |
 | 批工序汇总 sync | ✅ |
 | **P1 界面：8 视图筛选 + 合格合计查找** | ✅ **2026-06-23 人工验收** |
-| **联动四视图** | ✅ **返工23/报废87/历史27**（启用视图分组展示 119 行） |
+| **联动四视图** | ✅ **返工23/报废87/历史27** |
+| **P2 质量闭环** | ✅ **2026-06-23 人工验收** |
 
 ### P1 人工验收记录
 
@@ -100,17 +101,16 @@ crontab -e   # 8 / 12 / 20 点，见 cron.example
 
 通用说明：`docs/p1-cron-setup-cn.md`
 
-### 4.4 P2 不良闭环（P1 通过后）
+### ~~4.4 P2 不良闭环~~ ✅ 已完成（2026-06-23）
 
-**Prompt：** `openclaw-p2-prompt-cn.md` · **公式：** `feishu-p2-formula-fix-cn.md`
+验收记录：`docs/p2-completion-record-cn.md`
 
-| # | 内容 |
+| 项 | 状态 |
 | --- | --- |
-| 1 | 不良明细：处置类型、状态机 |
-| 2 | 主表：有不良→待返工→待品保确认→已确认 |
-| 3 | 有效合格/有效报废公式（有不良分支） |
-| 4 | 视图：品保·不良填报、班组长·待返工、品保·待确认 |
-| 5 | 端到端测试 1 条有不良报工 |
+| 不良明细表 `tblMtQ4aEwlzuhWs` + 品保/班组长视图 | ✅ |
+| 主表是否有不良 + 有效数公式 | ✅ |
+| 状态机四步流转（无不良/待返工/待品保/已确认） | ✅ 流程已测通 |
+| 汇总脚本仍只读「已确认」有效数 | ✅ |
 
 ### 4.5 后续（P2 后）
 
@@ -132,6 +132,8 @@ crontab -e   # 8 / 12 / 20 点，见 cron.example
 | 默认表格视图 | `vewT0WgVD1` |
 | 入库批次管控 | `tbl6bCLJThyUaD8U` |
 | 批工序产量汇总 | `tblu1h0huPW1Mixd` |
+| 不良明细表 | `tblMtQ4aEwlzuhWs` |
+| 不良原因联动规则表 | `tblUyVVrhKQOu1pO` |
 | 产品追溯规则 | `tblWv5lus3TI8zM3` |
 | STOPPER 产品 | `rechKic8YG1cTc` |
 | 止动块产品 | `recvnmMdIn6lCo` |

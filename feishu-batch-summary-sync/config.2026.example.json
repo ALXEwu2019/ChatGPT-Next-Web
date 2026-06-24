@@ -28,7 +28,7 @@
   },
   "summary_write": {
     "link_fields": {},
-    "skip_fields": ["production_area"]
+    "skip_fields": []
   },
   "field_mapping": {
     "production_log": {

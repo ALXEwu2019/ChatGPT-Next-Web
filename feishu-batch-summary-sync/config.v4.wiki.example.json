@@ -70,7 +70,10 @@
     "#4050": ["batch_text", "product", "process_code", "production_area"],
     "#60": ["batch_text", "product", "process_code"],
     "#70": ["batch_text", "product", "process_code"],
-    "#80": ["batch_text", "product", "process_code"]
+    "#80": ["batch_text", "product", "process_code"],
+    "#1020": ["batch_text", "product", "process_code"],
+    "#3040": ["batch_text", "product", "process_code"],
+    "#50": ["batch_text", "product", "process_code"]
   },
   "region_merge": {
     "#2030": {

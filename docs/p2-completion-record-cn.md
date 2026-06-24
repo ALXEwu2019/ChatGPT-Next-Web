@@ -86,7 +86,7 @@ python3 sync_batch_summary.py --dry-run -v
 | 联动四视图 | ✅ |
 | **P2 质量闭环** | ✅ |
 | cron 定时汇总 | ⏳ 国宝（`guobao-cron-deploy-cn.md`） |
-| 末道 #70/#80、PTJ92、对账视图 | 后续 |
+| 末道 #70/#80、PTJ92、对账视图 | ✅ API（`verify_extensions` 8/8）· PTJ92 筛选待做 |
 
 ---
 

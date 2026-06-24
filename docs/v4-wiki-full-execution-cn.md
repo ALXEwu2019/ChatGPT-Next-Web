@@ -112,13 +112,22 @@ crontab -e   # 8 / 12 / 20 点，见 cron.example
 | 状态机四步流转（无不良/待返工/待品保/已确认） | ✅ 流程已测通 |
 | 汇总脚本仍只读「已确认」有效数 | ✅ |
 
-### 4.5 后续（P2 后）
+### 4.5 ~~可选扩展~~ P3 推进中
+
+**推进单：** `docs/v4-extensions-execution-cn.md` · **脚本：** `advance_v4_extensions.py`
+
+| 扩展 | 状态 |
+| --- | --- |
+| 末道 STOPPER #70 测试链 + 汇总 | ✅ `verify_extensions` PASS |
+| #4050 对账视图 `vewEEYWvZN` | ✅ 公式字段齐全 |
+| PTJ92 字段+视图+追溯+管控 P-TEST-A | ✅ API 完成 |
+| PTJ92 三视图关联筛选 | ⏳ `openclaw-p3-ptj92-prompt-cn.md` |
+
+### 4.6 后续
 
 | 项 | 说明 |
 | --- | --- |
-| STOPPER #70、止动块 #70/#80 报工视图 | 末道启用 |
-| #4050 对账视图（MG 汇总 vs 下发） | P1 合格合计完成后 |
-| PTJ92 全链 | 单开阶段 |
+| 止动块 #70/#80 产线试跑 | 需止动块 #60 测试数据 |
 | 旧生产 Base 向绿场迁移 | 长期，非本单范围 |
 
 ---
@@ -137,9 +146,12 @@ crontab -e   # 8 / 12 / 20 点，见 cron.example
 | 产品追溯规则 | `tblWv5lus3TI8zM3` |
 | STOPPER 产品 | `rechKic8YG1cTc` |
 | 止动块产品 | `recvnmMdIn6lCo` |
+| PTJ92 报工视图 | `vew2SeSRgG` / `vewDNLBqX5` / `vewhTfcmic` |
 | 测试批 S-TEST-A 管控 | `recvnnc64j5p56` |
+| PTJ92 测试批 P-TEST-A | 管控表 #1020 首道 |
+| 对账视图 | `vewEEYWvZN`（管控表） |
 
-8 个报工视图 ID、字段 ID、筛选条件见 **`openclaw-p1-context-supplement-cn.md`**。
+8 个 STOPPER/止动块报工视图 ID、字段 ID、筛选条件见 **`openclaw-p1-context-supplement-cn.md`**。PTJ92 见 **`openclaw-p3-ptj92-prompt-cn.md`**。
 
 ---
 
@@ -155,6 +167,7 @@ crontab -e   # 8 / 12 / 20 点，见 cron.example
 | 旧库审计 | `production-base-v4-audit-cn.md` |
 | 汇总脚本 | `feishu-batch-summary-sync/sync_batch_summary.py` |
 | V4 推进脚本 | `feishu-batch-summary-sync/advance_v4_greenfield.py` |
+| **P3 扩展** | `v4-extensions-execution-cn.md` · `advance_v4_extensions.py` |
 
 ---
 

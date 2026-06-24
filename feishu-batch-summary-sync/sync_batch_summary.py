@@ -241,6 +241,7 @@ def build_record_batch_map(
         "关联管控批",
         "关联管控批_STOPPER#2030",
         "关联管控批_止动块#4050",
+        "关联管控批_PTJ92#1020",
     )
     upstream_keys = (
         "上道批号",
@@ -250,6 +251,8 @@ def build_record_batch_map(
         "上道批号_止动块#60",
         "上道批号_止动块#70",
         "上道批号_止动块#80",
+        "上道批号_PTJ92#3040",
+        "上道批号_PTJ92#50",
     )
 
     for item in raw_records:

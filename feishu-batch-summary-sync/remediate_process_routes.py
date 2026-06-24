@@ -10,7 +10,8 @@ import time
 from pathlib import Path
 
 from advance_v4_extensions import patch_view_columns
-from advance_v4_greenfield import COMMON_KEEP, Client
+from advance_v4_greenfield import COMMON_KEEP, VIEW_KEEP, Client
+from fix_ptj92_upstream import PTJ92_VIEWS
 from process_registry import (
     CHAINS,
     FIRST_CTRL_FIELD,
@@ -85,11 +86,13 @@ def _list_views(client: Client, table: str) -> list[dict]:
     return items
 
 
-def operator_keep(product: str, code: str) -> set[str]:
-    base = {
-        "日志编号", "产品", "工序代码", "生产批号", "合格数量", "报废数量",
-        "操作工", "班次", "生产区域", "工位代码",
-    }
+def operator_keep(view_id: str, product: str, code: str) -> set[str]:
+    """与 advance_v4_greenfield.VIEW_KEEP / PTJ92 视图列一致，避免覆盖后隐藏批号/有效数列。"""
+    if view_id in VIEW_KEEP:
+        return set(VIEW_KEEP[view_id])
+    if view_id in PTJ92_VIEWS:
+        return set(PTJ92_VIEWS[view_id]["keep"])
+    base = set(COMMON_KEEP)
     up = upstream_code(product, code)
     if up is None:
         fname = FIRST_CTRL_FIELD.get((product, code), "关联管控批")
@@ -97,8 +100,8 @@ def operator_keep(product: str, code: str) -> set[str]:
         if fname != "关联管控批":
             base.add("关联管控批")
     else:
-        fname = UPSTREAM_FIELD[(product, code)]
-        base.add(fname)
+        base.add(UPSTREAM_FIELD[(product, code)])
+        base.add("上道批号")
     if code in ("#2030", "#4050") or (product == "ZHIDONG" and code == "#2030"):
         base.add("生产区域")
     if code == "#60" or (product == "PTJ92" and code == "#1020"):
@@ -231,7 +234,7 @@ def setup_zhidong_2030(client: Client, dry_run: bool) -> list[str]:
     vid = ensure_view(client, ZHIDONG_2030_VIEW, dry_run)
     if vid:
         OPERATOR_VIEWS[vid] = ("ZHIDONG", "#2030")
-        lines.append(patch_view_columns(client, MAIN, vid, operator_keep("ZHIDONG", "#2030"), dry_run))
+        lines.append(patch_view_columns(client, MAIN, vid, operator_keep(vid, "ZHIDONG", "#2030"), dry_run))
         lines.append(patch_view_filter(client, vid, "ZHIDONG", "#2030", dry_run))
     elif dry_run:
         lines.append(f"[dry-run] create view {ZHIDONG_2030_VIEW}")
@@ -241,7 +244,7 @@ def setup_zhidong_2030(client: Client, dry_run: bool) -> list[str]:
 def patch_operator_views(client: Client, dry_run: bool) -> list[str]:
     lines: list[str] = []
     for vid, (product, code) in OPERATOR_VIEWS.items():
-        lines.append(patch_view_columns(client, MAIN, vid, operator_keep(product, code), dry_run))
+        lines.append(patch_view_columns(client, MAIN, vid, operator_keep(vid, product, code), dry_run))
         lines.append(patch_view_filter(client, vid, product, code, dry_run))
     return lines
 

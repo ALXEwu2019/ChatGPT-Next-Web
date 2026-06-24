@@ -16,6 +16,8 @@ BASE = "https://open.feishu.cn/open-apis"
 APP = "HiqNwQnxniKGEGketZBcEC9Sn3d"
 MAIN = "tblXr4h68tqh2HDy"
 TRACE = "tblWv5lus3TI8zM3"
+DEFECT = "tblMtQ4aEwlzuhWs"
+FLD_DEFECT_LINK = "fldcqqWphC"
 
 # 管控表批号文本列；主表关联管控批列
 CTRL_BATCH_COL = "fldVkXzRxj"
@@ -137,6 +139,11 @@ FORMULAS: dict[str, tuple[str, str]] = {
   "flduTFwjwb": (
     "管控批工序",
     "TEXT(bitable::$table[tblXr4h68tqh2HDy].$field[fldxfgJtRE].$column[fldW6msrvH])",
+  ),
+  # 是否有不良：按不良明细关联本行 record_id，勿引用日志编号（索引列）
+  "fldLiSoY4f": (
+    "是否有不良",
+    f"IF(bitable::$table[{DEFECT}].COUNTIF(CurrentValue.$column[{FLD_DEFECT_LINK}]=RECORD_ID())>0,1,0)",
   ),
 }
 

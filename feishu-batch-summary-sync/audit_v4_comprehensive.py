@@ -96,7 +96,10 @@ def audit_index_column(client: Client, res: AuditResult) -> None:
             continue
         expr = formula_expr(f)
         if LOG_NO in expr and f["field_name"] != "日志编号":
-            res.fail(f"公式·{f['field_name']}", "引用了日志编号字段，可能形成环")
+            if f["field_name"] == "是否有不良" and "RECORD_ID()" in expr:
+                res.ok("公式·是否有不良", "用 RECORD_ID 关联不良明细（非日志编号）")
+            else:
+                res.fail(f"公式·{f['field_name']}", "引用了日志编号字段，可能形成环")
         if "BLANK(" in expr:
             res.warn(f"公式·{f['field_name']}", "含 BLANK()，飞书可能红叹号")
 

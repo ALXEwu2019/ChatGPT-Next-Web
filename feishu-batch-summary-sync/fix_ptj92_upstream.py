@@ -19,7 +19,7 @@ APP = "HiqNwQnxniKGEGketZBcEC9Sn3d"
 MAIN = "tblXr4h68tqh2HDy"
 CTRL = "tbl6bCLJThyUaD8U"
 
-from process_registry import PROD, proc_id
+from process_registry import PROD, STATUS_CONFIRMED, proc_id
 
 PTJ92_VIEWS = {
     "vew2SeSRgG": {

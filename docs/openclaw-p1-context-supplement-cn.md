@@ -1,7 +1,7 @@
 # P1 飞书 AI 上下文补充包（完整 ID + 字段 + 数据）
 
 > **用途：** 飞书 AI 反馈「缺少业务实体上下文」时，将本文 **BEGIN～END** 整段粘贴给它，再接 `openclaw-p1-sprint-prompt-cn.md` 执行。  
-> **数据来源：** 2026-06-23 API 实测（机加工生产日志 v4）
+> **数据来源：** 2026-06-23 API 实测（机加工生产日志 v4 绿场 · Wiki 主战场）
 
 ---
 
@@ -10,7 +10,9 @@
 | 项 | 值 |
 | --- | --- |
 | 应用名称 | 机加工生产日志 v4 |
-| app_token | `CHNKbTKTCaWbQis1vVXcsLvsnDh` |
+| **Wiki 入口** | https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblXr4h68tqh2HDy&view=vewT0WgVD1 |
+| app_token（wiki） | `HiqNwQnxniKGEGketZBcEC9Sn3d` |
+| app_token（base 等价） | `CHNKbTKTCaWbQis1vVXcsLvsnDh` |
 | 生产日志主表 | `tblXr4h68tqh2HDy` |
 | 入库批次管控表 | `tbl6bCLJThyUaD8U` |
 | 批工序产量汇总表 | `tblu1h0huPW1Mixd` |
@@ -61,15 +63,15 @@
 - 上述 6 个上道字段 + 通用 `上道批号`(`fldDnQmyR6`)：**取消「允许多条」**（当前 `上道批号` multiple=true，需改为 false）
 - **不要**添加「有效合格数量>0」
 
-### 止动块重复视图（可选同步）
+### 止动块重复视图（已 API 删除）
 
-| view_id | 视图名 |
-| --- | --- |
-| `vewRy47uJk` | 止动块·#60报工 |
-| `vewsXMq522` | 止动块·#70报工 |
-| `vewxR6vOrR` | 止动块·#80报工 |
+以下 3 个简写重复视图已于 2026-06-23 由 `advance_v4_greenfield.py` 删除，**仅保留带「报工视图」后缀的 4 个**：
 
-可与上表对应视图使用相同筛选，或隐藏避免混淆。
+| view_id | 视图名 | 状态 |
+| --- | --- | --- |
+| `vewRy47uJk` | 止动块·#60报工 | 已删除 |
+| `vewsXMq522` | 止动块·#70报工 | 已删除 |
+| `vewxR6vOrR` | 止动块·#80报工 | 已删除 |
 
 ---
 

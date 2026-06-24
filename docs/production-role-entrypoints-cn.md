@@ -127,6 +127,8 @@ python3 sync_batch_summary.py --dry-run -v
 其他视图是把同一张主表按角色拆开：操作工只见 11 道报工列，班组长只见返工列，品保只见确认列。  
 **上道池**（PTJ92·上道池#1020/#3040）仅供核对可接上道的批，不在此填单。
 
+**工位贴码对照表（11 工位表单字段顺序 + 打印清单）：** [`production-workstation-qr-mapping-cn.md`](production-workstation-qr-mapping-cn.md)
+
 ---
 
 *角色入口手册 v1 · 2026-06-24*

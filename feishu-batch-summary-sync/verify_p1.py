@@ -98,14 +98,17 @@ def main() -> int:
         all_ok = all_ok and ok
 
     print("-" * 50)
-    manual = [
-        "上道批号6视图筛选（界面手工，勿用有效合格>0若保存失败）",
-        "首道关联管控批筛选2视图",
-        "合格合计查找4条件含生产区域",
-        "cron 8/12/20 点",
+    manual_done = [
+        "P1 界面：8 视图关联筛选、上道批号单选、合格合计 4 条件查找（2026-06-23 人工验收通过）",
     ]
-    print("仍需人工确认：")
-    for m in manual:
+    manual_pending = [
+        "cron 8/12/20 点（用户服务器部署）",
+    ]
+    print("P1 界面验收：")
+    for m in manual_done:
+        print(f"  ✅ {m}")
+    print("待完成：")
+    for m in manual_pending:
         print(f"  - {m}")
 
     return 0 if all_ok else 2

@@ -131,7 +131,8 @@ def main() -> int:
     )
 
     print("-" * 50)
-    print("仍需人工：P1 视图筛选、联动四视图、cron、P2 状态机")
+    print("P1 界面：✅ 已验收（2026-06-23）")
+    print("待完成：联动四视图、cron、P2 状态机")
     return 0 if ok else 1
 
 

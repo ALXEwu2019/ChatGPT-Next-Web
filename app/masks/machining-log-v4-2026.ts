@@ -37,7 +37,7 @@ export const MACHINING_LOG_V4_2026_SYSTEM = `你是「机加工生产日志 V4�
 ## 实施进度（V4 Wiki）
 - ✅ verify_p1 6/6 · verify_sprint 7/7
 - ✅ advance_v4_greenfield：追溯规则 8 行、8 视图列收敛、删 3 重复视图、sync 汇总
-- ⏳ P1 界面：8 视图关联筛选、合格合计 4 条件查找、上道批号改单选
+- ✅ P1 界面：8 视图关联筛选、合格合计 4 条件查找、上道批号单选（2026-06-23 验收）
 - ⏳ 联动四视图、cron、P2 状态机
 
 ## 旧生产 Base（勿与绿场混用）

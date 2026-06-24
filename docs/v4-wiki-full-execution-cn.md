@@ -1,7 +1,7 @@
 # 机加工生产日志 V4 绿场 · 完整推进单（Wiki 主战场）
 
 > **入口链接：** [机加工生产日志 V4](https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblXr4h68tqh2HDy&view=vewT0WgVD1)  
-> **更新：** 2026-06-23 · `advance_v4_greenfield.py` 已执行 · verify_p1 **6/6** · verify_sprint **7/7**
+> **更新：** 2026-06-23 · **P1 界面验收通过** · verify_p1 **6/6** · verify_sprint **7/7**
 
 ---
 
@@ -26,7 +26,7 @@ python3 advance_v4_greenfield.py --dry-run   # 预览变更
 
 | 检查项 | 状态 |
 | --- | --- |
-| 主表 37 字段、5 条已确认报工 | ✅ |
+| 主表 37 字段、已确认报工 | ✅（7 条） |
 | 管控表 ≥4 行、S-TEST-A 首道 | ✅ |
 | 汇总表 4 行（脚本写入） | ✅ |
 | 产品工序路线 11 行 | ✅ |
@@ -35,7 +35,16 @@ python3 advance_v4_greenfield.py --dry-run   # 预览变更
 | 产品追溯规则表 8 行 | ✅ **本次 API 补种** |
 | 8 报工视图 hidden_fields 收敛 | ✅ **本次 API** |
 | 3 个重复止动块简写视图 | ✅ **已删除** |
-| 批工序汇总 sync | ✅ **本次跑通 3 行** |
+| 批工序汇总 sync | ✅ |
+| **P1 界面：8 视图筛选 + 合格合计查找** | ✅ **2026-06-23 人工验收** |
+
+### P1 人工验收记录
+
+| 验证项 | 结果 |
+| --- | --- |
+| 6 下道视图筛到 S-TEST-A | ✅ |
+| 首道选 `recvnnc64j5p56` | ✅ |
+| 管控 S-TEST-A #4050 合格合计 | ✅ **80** |
 
 ---
 
@@ -56,27 +65,11 @@ python3 advance_v4_greenfield.py --dry-run   # 预览变更
 
 ## 4. 待完成（飞书界面 / 服务器）
 
-### 4.1 P1 收尾（优先，约 30 分钟）
+### ~~4.1 P1 收尾~~ ✅ 已完成（2026-06-23）
 
-**手册：** `feishu-p1-manual-setup-cn.md`  
-**上下文 + Prompt：** `openclaw-p1-context-supplement-cn.md` → `openclaw-p1-sprint-prompt-cn.md`
+8 视图关联筛选、上道批号单选、合格合计 4 条件查找、生产批号只读均已验收。详见 `p1-completion-checklist-cn.md`。
 
-| # | 任务 | 验收 |
-| --- | --- | --- |
-| 1 | 6 个下道视图上道批号关联筛选 | #4050 能筛到 S-TEST-A 上道 #2030 |
-| 2 | 2 个首道视图管控批筛选（已下发） | 能选 `recvnnc64j5p56`（S-TEST-A） |
-| 3 | 上道批号 + 6 专用字段取消「允许多条」 | 单选 |
-| 4 | 止动块下道视图加产品=止动块 | 不串 STOPPER |
-| 5 | 管控表合格合计 4 条件查找 | S-TEST-A #4050 行显示 80 或 100 |
-| 6 | 生产批号各视图只读 | 不可手改 |
-
-**筛选禁忌：** 勿用「有效合格数量>0」（公式字段会导致保存失败）。用：
-
-- 工序下发状态 = **已确认**
-- 工序代码 = 上道工序 record_id
-- （止动块）产品 = `recvnmMdIn6lCo`
-
-### 4.2 联动四视图（约 10 分钟）
+### 4.2 联动四视图（当前优先，约 10 分钟）
 
 **指南：** `feishu-defect-linkage-views-setup-cn.md`
 

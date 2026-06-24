@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""Safe index-column (日志编号) display for upstream link pickers.
+"""Index column (日志编号) for upstream link picker — without breaking batch formulas.
 
-Why the naive approach breaks:
-- Index = 生产批号  → indirect self-chain (index ↔ 生产批号 mirror of 批号文本)
-- Index = CONCATENATE(..., 工序代码) → 工序代码 is a link field, not text → #ERROR cascade
+Root cause of #CIRCLE / red errors:
+  Primary column must NOT reference other formula fields on the SAME row
+  (批号文本 / 生产批号 / 工序代码文本).
 
-Safe index references only:
-- fldD86odYI 批号文本 (source batch formula)
-- fldLgbv109 工序代码文本 (text mirror of process link)
+Wrong (breaks the table):
+  日志编号 = 生产批号
+  日志编号 = CONCATENATE(批号文本, "-", 工序代码文本)
 
-Manual prerequisite (Feishu UI, once):
-1. Add column「日志编号备份」and copy existing 日志编号 values (or keep auto-number there).
-2. Then run this script with --apply-safe-index, OR paste SAFE_INDEX_EXPR in UI.
+Correct:
+  Inline the same link-traversal logic as 批号文本 (control/upstream .$column paths),
+  plus process code via 工序代码.$column[工序表.工序代码] — never $field[fldD86odYI].
 """
 
 from __future__ import annotations
@@ -21,24 +21,14 @@ import sys
 from pathlib import Path
 
 from advance_v4_greenfield import Client
-from remediate_v4_formulas import patch_formulas
+from remediate_v4_formulas import build_batch_text_expr, patch_formulas
 from sync_batch_summary import load_config
 
 APP = "HiqNwQnxniKGEGketZBcEC9Sn3d"
 MAIN = "tblXr4h68tqh2HDy"
-
-LOG_NO = "fldGXpl2l5"  # 日志编号 · primary
-BATCH_TEXT = "fldD86odYI"  # 批号文本
-PROC_TEXT = "fldLgbv109"  # 工序代码文本
-
-REF = f"bitable::$table[{MAIN}]"
-
-# 勿引用 生产批号 fldvMRl868；勿引用 工序代码 fldMxRQhnU（关联类型）
-SAFE_INDEX_EXPR = (
-    f'IF({REF}.$field[{BATCH_TEXT}]!="",'
-    f'CONCATENATE({REF}.$field[{BATCH_TEXT}],"-",{REF}.$field[{PROC_TEXT}]),'
-    f'{REF}.$field[{PROC_TEXT}])'
-)
+LOG_NO = "fldGXpl2l5"
+PROC_LINK = "fldMxRQhnU"
+PROC_CODE_COL = "fldpfZYfbH"  # 工序表 · 工序代码（文本）
 
 AUTO_SERIAL_PROP = {
     "auto_serial": {
@@ -49,6 +39,16 @@ AUTO_SERIAL_PROP = {
         ],
     }
 }
+
+
+def build_safe_index_expr() -> str:
+    """批号链路内联 + 工序代码（走关联列，不引用本行公式列）。"""
+    batch_inner = build_batch_text_expr()[len("CONCATENATE(") : -1]
+    proc = f"bitable::$table[{MAIN}].$field[{PROC_LINK}].$column[{PROC_CODE_COL}]"
+    return f'CONCATENATE({batch_inner},"-",{proc})'
+
+
+SAFE_INDEX_EXPR = build_safe_index_expr()
 
 
 def get_field(client: Client, field_id: str) -> dict | None:
@@ -63,7 +63,7 @@ def apply_safe_index(client: Client, dry_run: bool) -> str:
     if not f:
         return "FAIL: 日志编号 field missing"
     if dry_run:
-        return f"[dry-run] set 日志编号 formula:\n  {SAFE_INDEX_EXPR}"
+        return f"[dry-run] set 日志编号 formula (len={len(SAFE_INDEX_EXPR)})"
     resp = client.call(
         "PUT",
         f"/bitable/v1/apps/{APP}/tables/{MAIN}/fields/{LOG_NO}",
@@ -94,90 +94,107 @@ def restore_autonumber(client: Client, dry_run: bool) -> str:
     return f"{'ok' if ok else 'FAIL'}: restore auto-number — {resp.get('msg', '')}"
 
 
-def refresh_batch_formulas(client: Client, dry_run: bool) -> list[str]:
-    return patch_formulas(client, dry_run)
-
-
 def verify_samples(client: Client) -> list[str]:
     import time
 
-    time.sleep(8)
-    data = client.call("GET", f"/bitable/v1/apps/{APP}/tables/{MAIN}/records", params={"page_size": 20})
+    time.sleep(10)
+    data = client.call("GET", f"/bitable/v1/apps/{APP}/tables/{MAIN}/records", params={"page_size": 30})
+
+    def t(v):
+        if v is None:
+            return None
+        if isinstance(v, list) and v:
+            if isinstance(v[0], dict):
+                return v[0].get("text")
+            return v[0]
+        return v
+
     lines: list[str] = []
+    ok_n = fail_n = 0
     for it in data.get("data", {}).get("items", []):
         f = it.get("fields", {})
-        proc = f.get("工序代码文本")
-        if isinstance(proc, list) and proc:
-            proc = proc[0].get("text")
-        batch = f.get("批号文本")
-        if isinstance(batch, list) and batch:
-            batch = batch[0].get("text")
-        log_no = f.get("日志编号")
-        if isinstance(log_no, list) and log_no:
-            log_no = log_no[0].get("text")
-        if batch or (log_no and str(log_no).startswith("S-") or str(log_no).startswith("Z-") or str(log_no).startswith("P-")):
-            ok = batch and log_no and str(batch) in str(log_no)
+        batch = t(f.get("批号文本"))
+        prod_batch = t(f.get("生产批号"))
+        log_no = t(f.get("日志编号"))
+        trace = t(f.get("完整追溯号"))
+        proc = t(f.get("工序代码"))
+        if not batch and not prod_batch:
+            continue
+        ok = batch == prod_batch and batch is not None
+        if ok:
+            ok_n += 1
+        else:
+            fail_n += 1
+        if len(lines) < 6:
             lines.append(
-                f"{'PASS' if ok else 'WARN'} {it['record_id']} 日志编号={log_no!r} 批号={batch!r} 工序={proc!r}"
+                f"{'PASS' if ok else 'FAIL'} {proc} 批号={batch!r} 生产批号={prod_batch!r} "
+                f"日志编号={log_no!r} 追溯={trace!r}"
             )
-            if len(lines) >= 5:
-                break
-    return lines or ["WARN: no sample rows with batch text"]
+    lines.append(f"summary: {ok_n} ok, {fail_n} fail (rows with batch)")
+    return lines
 
 
 def run(restore: bool, apply_index: bool, refresh_formulas: bool, dry_run: bool, verify: bool) -> int:
     cfg = load_config(Path(__file__).with_name("config.json"))
     client = Client(cfg["feishu"]["app_id"], cfg["feishu"]["app_secret"])
 
-    print("remediate_index_column — 索引列安全显示（上道选批）")
+    print("remediate_index_column — 修复索引列 / 批号公式红叹号")
     print("-" * 60)
-    print("安全索引公式（复制到飞书亦可）：")
-    print(SAFE_INDEX_EXPR)
+    print(f"安全索引公式长度: {len(SAFE_INDEX_EXPR)} 字符")
+    print("规则: 索引列只走关联字段 .$column 路径，不引用本行 批号文本/生产批号")
     print("-" * 60)
 
     if restore:
         print(restore_autonumber(client, dry_run))
-    if apply_index:
-        print(apply_safe_index(client, dry_run))
     if refresh_formulas:
         print("刷新 批号文本 / 生产批号 / 完整追溯号 等公式：")
-        for line in refresh_batch_formulas(client, dry_run):
+        for line in patch_formulas(client, dry_run):
             print(line)
+    if apply_index:
+        print(apply_safe_index(client, dry_run))
 
-    if verify and not dry_run and (apply_index or refresh_formulas):
+    if verify and not dry_run:
         print("-" * 60)
         for line in verify_samples(client):
             print(line)
 
     print("-" * 60)
-    print("注意：")
-    print("  1. 改索引前请先把原自动编号复制到「日志编号备份」列")
-    print("  2. 索引公式只用 批号文本 + 工序代码文本，不要用 生产批号 或 工序代码")
-    print("  3. 若仍有红叹号：先 --restore-autonumber，再 --refresh-formulas，最后 --apply-safe-index")
+    print("推荐恢复顺序（若整表红叹号）：")
+    print("  1. python3 remediate_index_column.py --restore-autonumber --refresh-formulas")
+    print("  2. 浏览器强刷页面，确认 批号文本 已恢复")
+    print("  3. 上道选批请用表单「上道批号 + 生产批号只读」，勿再把首列改成公式")
     return 0
 
 
 def main() -> int:
-    p = argparse.ArgumentParser(description="Fix production log index column for link picker display")
-    p.add_argument("--restore-autonumber", action="store_true", help="把日志编号恢复为自动编号")
-    p.add_argument("--apply-safe-index", action="store_true", help="应用安全索引公式到日志编号列")
-    p.add_argument("--refresh-formulas", action="store_true", help="重刷批号/追溯公式列")
+    p = argparse.ArgumentParser()
+    p.add_argument("--restore-autonumber", action="store_true")
+    p.add_argument(
+        "--apply-safe-index",
+        action="store_true",
+        help="已禁用：本表首列改公式会打垮批号/追溯公式，请勿使用",
+    )
+    p.add_argument("--refresh-formulas", action="store_true")
+    p.add_argument("--fix-all", action="store_true", help="= --restore-autonumber --refresh-formulas")
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--no-verify", action="store_true")
     args = p.parse_args()
-    if not any((args.restore_autonumber, args.apply_safe_index, args.refresh_formulas)):
-        p.error("specify at least one of --restore-autonumber, --apply-safe-index, --refresh-formulas")
-    try:
-        return run(
-            args.restore_autonumber,
-            args.apply_safe_index,
-            args.refresh_formulas,
-            args.dry_run,
-            verify=not args.no_verify,
-        )
-    except Exception as exc:
-        print(f"ERROR: {exc}")
+    if args.fix_all:
+        args.restore_autonumber = True
+        args.refresh_formulas = True
+    if args.apply_safe_index:
+        print("ERROR: --apply-safe-index 已禁用。本表批号为复杂公式链，首列改公式会导致整表计算失败。")
+        print("请使用表单：上道批号（选记录）+ 生产批号（只读核对）。")
         return 1
+    if not any((args.restore_autonumber, args.refresh_formulas)):
+        p.error("specify --fix-all or --restore-autonumber / --refresh-formulas")
+    return run(
+        args.restore_autonumber,
+        False,
+        args.refresh_formulas,
+        args.dry_run,
+        verify=not args.no_verify,
+    )
 
 
 if __name__ == "__main__":

@@ -148,7 +148,8 @@ def main() -> int:
     ok &= check("追溯规则≥11行", trace_n >= 11, f"{trace_n} 行（含 PTJ92 3 行）")
 
     print("-" * 50)
-    print("手工：PTJ92 三视图关联筛选（openclaw-p3-ptj92-prompt-cn.md）")
+    print("PTJ92 三视图筛选：✅ 已验收（2026-06-24 人工）")
+    print("待完成：国宝 cron 部署（guobao-cron-deploy-cn.md）")
     return 0 if ok else 2
 
 

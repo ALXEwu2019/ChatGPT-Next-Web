@@ -112,16 +112,15 @@ crontab -e   # 8 / 12 / 20 点，见 cron.example
 | 状态机四步流转（无不良/待返工/待品保/已确认） | ✅ 流程已测通 |
 | 汇总脚本仍只读「已确认」有效数 | ✅ |
 
-### 4.5 ~~可选扩展~~ P3 推进中
+### ~~4.5 可选扩展 P3~~ ✅ 已完成（2026-06-24）
 
-**推进单：** `docs/v4-extensions-execution-cn.md` · **脚本：** `advance_v4_extensions.py`
+推进单：`docs/v4-extensions-execution-cn.md` · `verify_extensions.py` **8/8 PASS**
 
 | 扩展 | 状态 |
 | --- | --- |
-| 末道 STOPPER #70 测试链 + 汇总 | ✅ `verify_extensions` PASS |
-| #4050 对账视图 `vewEEYWvZN` | ✅ 公式字段齐全 |
-| PTJ92 字段+视图+追溯+管控 P-TEST-A | ✅ API 完成 |
-| PTJ92 三视图关联筛选 | ⏳ `openclaw-p3-ptj92-prompt-cn.md` |
+| 末道 STOPPER #70 测试链 + 汇总 | ✅ |
+| #4050 对账视图 | ✅ |
+| PTJ92 全链（含三视图筛选） | ✅ |
 
 ### 4.6 后续
 

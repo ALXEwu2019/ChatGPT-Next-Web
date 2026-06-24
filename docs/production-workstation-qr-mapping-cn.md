@@ -22,7 +22,7 @@
 
 ---
 
-## 二、操作工：11 个工位对照表
+## 二、操作工：12 个工位对照表
 
 | # | 建议二维码标题 | 产品 | 工序 | 源表格视图 | view_id |
 |---|---------------|------|------|-----------|---------|
@@ -30,13 +30,14 @@
 | 2 | 扫码-STOPPER-4050 | STOPPER | #4050 磨床 | [STOPPER·#4050报工视图](https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblXr4h68tqh2HDy&view=vew7Diocr5) | `vew7Diocr5` |
 | 3 | 扫码-STOPPER-60 | STOPPER | #60 加工中心 | [STOPPER·#60报工视图](https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblXr4h68tqh2HDy&view=vewgS0km1u) | `vewgS0km1u` |
 | 4 | 扫码-STOPPER-70 | STOPPER | #70 检测末道 | [STOPPER·#70报工视图](https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblXr4h68tqh2HDy&view=vewqlHptpP) | `vewqlHptpP` |
-| 5 | 扫码-止动块-4050 | 止动块 | #4050 磨床首道 | [止动块·#4050报工](https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblXr4h68tqh2HDy&view=vew4kJ8hxX) | `vew4kJ8hxX` |
-| 6 | 扫码-止动块-60 | 止动块 | #60 加工中心 | [止动块·#60 报工视图](https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblXr4h68tqh2HDy&view=vewEMVET4u) | `vewEMVET4u` |
-| 7 | 扫码-止动块-70 | 止动块 | #70 检测 | [止动块·#70 报工视图](https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblXr4h68tqh2HDy&view=vewUWGnXfU) | `vewUWGnXfU` |
-| 8 | 扫码-止动块-80 | 止动块 | #80 末道 | [止动块·#80 报工视图](https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblXr4h68tqh2HDy&view=vewEJZrQu5) | `vewEJZrQu5` |
-| 9 | 扫码-PTJ92-1020 | PTJ92 | #1020 首道 | [PTJ92·#1020报工](https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblXr4h68tqh2HDy&view=vew2SeSRgG) | `vew2SeSRgG` |
-| 10 | 扫码-PTJ92-3040 | PTJ92 | #3040 | [PTJ92·#3040报工](https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblXr4h68tqh2HDy&view=vewDNLBqX5) | `vewDNLBqX5` |
-| 11 | 扫码-PTJ92-50 | PTJ92 | #50 末道 | [PTJ92·#50报工](https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblXr4h68tqh2HDy&view=vewhTfcmic) | `vewhTfcmic` |
+| 5 | 扫码-止动块-2030 | 止动块 | #2030 车床首道 | [止动块·#2030报工](https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblXr4h68tqh2HDy&view=vewBbCamcQ) | `vewBbCamcQ` |
+| 6 | 扫码-止动块-4050 | 止动块 | #4050 磨床 | [止动块·#4050报工](https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblXr4h68tqh2HDy&view=vew4kJ8hxX) | `vew4kJ8hxX` |
+| 7 | 扫码-止动块-60 | 止动块 | #60 加工中心 | [止动块·#60 报工视图](https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblXr4h68tqh2HDy&view=vewEMVET4u) | `vewEMVET4u` |
+| 8 | 扫码-止动块-70 | 止动块 | #70 检测 | [止动块·#70 报工视图](https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblXr4h68tqh2HDy&view=vewUWGnXfU) | `vewUWGnXfU` |
+| 9 | 扫码-止动块-80 | 止动块 | #80 末道 | [止动块·#80 报工视图](https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblXr4h68tqh2HDy&view=vewEJZrQu5) | `vewEJZrQu5` |
+| 10 | 扫码-PTJ92-1020 | PTJ92 | #1020 首道 | [PTJ92·#1020报工](https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblXr4h68tqh2HDy&view=vew2SeSRgG) | `vew2SeSRgG` |
+| 11 | 扫码-PTJ92-3040 | PTJ92 | #3040 | [PTJ92·#3040报工](https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblXr4h68tqh2HDy&view=vewDNLBqX5) | `vewDNLBqX5` |
+| 12 | 扫码-PTJ92-50 | PTJ92 | #50 末道 | [PTJ92·#50报工](https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblXr4h68tqh2HDy&view=vewhTfcmic) | `vewhTfcmic` |
 
 ---
 
@@ -57,7 +58,8 @@
 
 | 工位 | 选批字段 ★ | 表单字段顺序（上→下） | 区域/工位取值 |
 |------|-----------|----------------------|--------------|
-| #4050 | **关联管控批_止动块#4050** ★ | ① 关联管控批_止动块#4050 → ② 生产批号 → ③ **生产区域** ★ → ④ 合格数量 ★ → ⑤ 报废数量 → ⑥ 操作工 → ⑦ 班次 | `MG02` `MG03` `MG04` |
+| #2030 | **关联管控批_止动块#2030** ★ | ① 关联管控批_止动块#2030 → ② 生产批号 → ③ **生产区域** ★ → ④ 合格数量 ★ → ⑤ 报废数量 → ⑥ 操作工 → ⑦ 班次 | `A1` `A2` `B1` `B2` |
+| #4050 | **上道批号_止动块#4050** ★ | ① 上道批号_止动块#4050 → ② 生产批号 → ③ **生产区域** ★ → ④ 合格数量 ★ → ⑤ 报废数量 → ⑥ 操作工 → ⑦ 班次 | `MG02` `MG03` `MG04` |
 | #60 | **上道批号_止动块#60** ★ | ① 上道批号_止动块#60 → ② 生产批号 → ③ **工位代码** ★ → ④ 合格数量 ★ → ⑤ 报废数量 → ⑥ 操作工 → ⑦ 班次 | `J1` `J2` |
 | #70 | **上道批号_止动块#70** ★ | ① 上道批号_止动块#70 → ② 生产批号 → ③ 合格数量 ★ → ④ 报废数量 → ⑤ 操作工 → ⑥ 班次 | 无 |
 | #80 | **上道批号_止动块#80** ★ | ① 上道批号_止动块#80 → ② 生产批号 → ③ 合格数量 ★ → ④ 报废数量 → ⑤ 操作工 → ⑥ 班次 | 无 |
@@ -115,9 +117,9 @@
 ## 六、产线贴码清单（打印勾选）
 
 ```
-操作工（11 张）
+操作工（12 张）
 □ 扫码-STOPPER-2030    □ 扫码-STOPPER-4050    □ 扫码-STOPPER-60     □ 扫码-STOPPER-70
-□ 扫码-止动块-4050     □ 扫码-止动块-60       □ 扫码-止动块-70      □ 扫码-止动块-80
+□ 扫码-止动块-2030     □ 扫码-止动块-4050     □ 扫码-止动块-60       □ 扫码-止动块-70      □ 扫码-止动块-80
 □ 扫码-PTJ92-1020      □ 扫码-PTJ92-3040      □ 扫码-PTJ92-50
 
 班组长 / 品保（收藏链接，不贴码）
@@ -133,4 +135,4 @@
 
 ---
 
-*工位二维码对照表 v1 · 2026-06-24*
+*工位二维码对照表 v2 · 2026-06-24（12 工序 / 产品×工序代码）*

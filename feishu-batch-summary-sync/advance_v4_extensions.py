@@ -18,20 +18,7 @@ MAIN = "tblXr4h68tqh2HDy"
 CTRL = "tbl6bCLJThyUaD8U"
 TRACE = "tblWv5lus3TI8zM3"
 
-PROD_STOPPER = "rechKic8YG1cTc"
-PROD_ZHIDONG = "recvnmMdIn6lCo"
-PROD_PTJ92 = "recvnngInM41nM"
-
-PROC = {
-    "#2030": "recC9QvIgUH8oK",
-    "#4050": "recs76rS587WRW",
-    "#60": "recfoJ5q7gJVtK",
-    "#70": "recIZhFG8RKKMI",
-    "#80": "recvnmMevC5Dbr",
-    "#1020": "recy0wR8UdunUU",
-    "#3040": "recST53o7KuXQy",
-    "#50": "recRxX5JjvzuEm",
-}
+from process_registry import PROD, proc_id
 
 # 末道视图（P1 已建，本脚本补测试数据 + 列收敛复核）
 END_VIEW_IDS = ("vewqlHptpP", "vewUWGnXfU", "vewEJZrQu5")
@@ -55,9 +42,9 @@ PTJ92_VIEWS = [
 ]
 
 PTJ92_TRACE = [
-    ("PTJ92-#1020", PROD_PTJ92, "#1020", True, "工位代码", "#1020 首道"),
-    ("PTJ92-#3040", PROD_PTJ92, "#3040", False, "无", "不需要追溯号"),
-    ("PTJ92-#50", PROD_PTJ92, "#50", False, "无", "检测出库合一"),
+    ("PTJ92-#1020", "PTJ92", "#1020", True, "工位代码", "#1020 首道"),
+    ("PTJ92-#3040", "PTJ92", "#3040", False, "无", "不需要追溯号"),
+    ("PTJ92-#50", "PTJ92", "#50", False, "无", "检测出库合一"),
 ]
 
 # S-TEST-A 链路（API 实测）
@@ -84,7 +71,7 @@ def ensure_upstream_chain(client: Client, dry_run: bool) -> list[str]:
         f = it.get("fields", {})
         proc = f.get("工序代码")
         proc_ids = proc[0].get("record_ids", []) if isinstance(proc, list) and proc else []
-        if PROC["#60"] not in proc_ids:
+        if proc_id("STOPPER", "#60") not in proc_ids:
             continue
         up = f.get("上道批号_STOPPER#60") or f.get("上道批号")
         has_up = isinstance(up, list) and up and up[0].get("record_ids")
@@ -179,13 +166,13 @@ def seed_ptj92_trace(client: Client, dry_run: bool) -> list[str]:
     if existing >= 11:
         return [f"skip trace: already {existing} rows"]
     rows = []
-    for name, prod, proc_code, need, seg3, note in PTJ92_TRACE:
+    for name, prod_key, proc_code, need, seg3, note in PTJ92_TRACE:
         rows.append(
             {
                 "fields": {
                     "规则名称": name,
-                    "产品": [prod],
-                    "工序代码": [PROC[proc_code]],
+                    "产品": [PROD[prod_key]],
+                    "工序代码": [proc_id(prod_key, proc_code)],
                     "需要追溯号": need,
                     "段3来源字段": seg3,
                     "段3说明": note,
@@ -212,8 +199,8 @@ def seed_ptj92_control(client: Client, dry_run: bool) -> list[str]:
     row = {
         "fields": {
             "批号文本": "P-TEST-A",
-            "产品": [PROD_PTJ92],
-            "工序代码": [PROC["#1020"]],
+            "产品": [PROD["PTJ92"]],
+            "工序代码": [proc_id("PTJ92", "#1020")],
             "状态": "已下发",
             "本工序下发数量": 300,
         }
@@ -229,15 +216,17 @@ def seed_ptj92_control(client: Client, dry_run: bool) -> list[str]:
     return [f"{'created' if ok else 'FAIL'} control P-TEST-A: {resp.get('msg', '')}"]
 
 
-def has_main_row(client: Client, product: str, proc: str) -> bool:
+def has_main_row(client: Client, product_key: str, proc: str) -> bool:
     data = client.call("GET", f"/bitable/v1/apps/{APP}/tables/{MAIN}/records", params={"page_size": 500})
+    pid = PROD[product_key]
+    want_proc = proc_id(product_key, proc)
     for it in data.get("data", {}).get("items", []):
         f = it.get("fields", {})
         prod = f.get("产品")
         proc_f = f.get("工序代码")
         prod_ids = prod[0].get("record_ids", []) if isinstance(prod, list) and prod else []
         proc_ids = proc_f[0].get("record_ids", []) if isinstance(proc_f, list) and proc_f else []
-        if product in prod_ids and PROC[proc] in proc_ids and f.get("工序下发状态") == "已确认":
+        if pid in prod_ids and want_proc in proc_ids and f.get("工序下发状态") == "已确认":
             return True
     return False
 
@@ -245,13 +234,13 @@ def has_main_row(client: Client, product: str, proc: str) -> bool:
 def seed_end_process_rows(client: Client, dry_run: bool) -> list[str]:
     lines: list[str] = []
     lines.extend(ensure_upstream_chain(client, dry_run))
-    if has_main_row(client, PROD_STOPPER, "#70"):
+    if has_main_row(client, "STOPPER", "#70"):
         lines.append("skip: STOPPER #70 test row exists")
     else:
         row = {
             "fields": {
-                "产品": [PROD_STOPPER],
-                "工序代码": [PROC["#70"]],
+                "产品": [PROD["STOPPER"]],
+                "工序代码": [proc_id("STOPPER", "#70")],
                 "上道批号_STOPPER#70": [UPSTREAM_STOPPER_60],
                 "合格数量": 55,
                 "报废数量": 0,

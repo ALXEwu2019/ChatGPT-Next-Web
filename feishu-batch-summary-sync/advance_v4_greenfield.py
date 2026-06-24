@@ -18,26 +18,7 @@ APP = "HiqNwQnxniKGEGketZBcEC9Sn3d"
 MAIN = "tblXr4h68tqh2HDy"
 TRACE = "tblWv5lus3TI8zM3"
 
-PROD_STOPPER = "rechKic8YG1cTc"
-PROD_ZHIDONG = "recvnmMdIn6lCo"
-PROC = {
-    "#2030": "recC9QvIgUH8oK",
-    "#4050": "recs76rS587WRW",
-    "#60": "recfoJ5q7gJVtK",
-    "#70": "recIZhFG8RKKMI",
-    "#80": "recvnmMevC5Dbr",
-}
-
-TRACE_ROWS = [
-    ("STOPPER-#2030", PROD_STOPPER, "#2030", True, "生产区域", "#2030 末段=A1/A2/B1/B2"),
-    ("STOPPER-#4050", PROD_STOPPER, "#4050", True, "生产区域", "#4050 末段=MG区"),
-    ("STOPPER-#60", PROD_STOPPER, "#60", True, "工位代码", "#60 末段=J1/J2"),
-    ("STOPPER-#70", PROD_STOPPER, "#70", False, "无", "不需要追溯号"),
-    ("止动块-#4050", PROD_ZHIDONG, "#4050", True, "生产区域", "MG区"),
-    ("止动块-#60", PROD_ZHIDONG, "#60", True, "工位代码", "J1/J2"),
-    ("止动块-#70", PROD_ZHIDONG, "#70", False, "无", "不需要追溯号"),
-    ("止动块-#80", PROD_ZHIDONG, "#80", False, "无", "不需要追溯号"),
-]
+from process_registry import CHAINS, PROD, TRACE_RULES, proc_id
 
 COMMON_KEEP = {
     "日志编号", "产品", "产品名称", "工序代码", "工序代码文本", "工序下发状态",
@@ -52,7 +33,7 @@ VIEW_KEEP: dict[str, set[str]] = {
     "vew7Diocr5": COMMON_KEEP | {"上道批号_STOPPER#4050", "上道批号", "生产区域"},
     "vewgS0km1u": COMMON_KEEP | {"上道批号_STOPPER#60", "上道批号", "工位代码"},
     "vewqlHptpP": COMMON_KEEP | {"上道批号_STOPPER#70", "上道批号"},
-    "vew4kJ8hxX": COMMON_KEEP | {"关联管控批_止动块#4050", "关联管控批", "生产区域"},
+    "vew4kJ8hxX": COMMON_KEEP | {"上道批号_止动块#4050", "上道批号", "生产区域"},
     "vewEMVET4u": COMMON_KEEP | {"上道批号_止动块#60", "上道批号", "工位代码"},
     "vewUWGnXfU": COMMON_KEEP | {"上道批号_止动块#70", "上道批号"},
     "vewEJZrQu5": COMMON_KEEP | {"上道批号_止动块#80", "上道批号"},
@@ -107,13 +88,13 @@ def seed_trace_rules(client: Client, dry_run: bool) -> list[str]:
     if n >= 8:
         return [f"skip trace rules: already {n} rows"]
     rows = []
-    for name, prod, proc_code, need, seg3, note in TRACE_ROWS:
+    for name, prod_key, proc_code, need, seg3, note in TRACE_RULES:
         rows.append(
             {
                 "fields": {
                     "规则名称": name,
-                    "产品": [prod],
-                    "工序代码": [PROC[proc_code]],
+                    "产品": [PROD[prod_key]],
+                    "工序代码": [proc_id(prod_key, proc_code)],
                     "需要追溯号": need,
                     "段3来源字段": seg3,
                     "段3说明": note,

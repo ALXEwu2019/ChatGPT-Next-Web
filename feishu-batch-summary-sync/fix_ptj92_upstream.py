@@ -19,13 +19,7 @@ APP = "HiqNwQnxniKGEGketZBcEC9Sn3d"
 MAIN = "tblXr4h68tqh2HDy"
 CTRL = "tbl6bCLJThyUaD8U"
 
-PROD_PTJ92 = "recvnngInM41nM"
-STATUS_CONFIRMED = "optifE7dfZ"
-PROC = {
-    "#1020": "recy0wR8UdunUU",
-    "#3040": "recST53o7KuXQy",
-    "#50": "recRxX5JjvzuEm",
-}
+from process_registry import PROD, proc_id
 
 PTJ92_VIEWS = {
     "vew2SeSRgG": {
@@ -33,8 +27,8 @@ PTJ92_VIEWS = {
         "keep": COMMON_KEEP | {"关联管控批_PTJ92#1020", "关联管控批", "工位代码"},
         # 首道：本视图只显示 PTJ92·#1020 报工行
         "filter": [
-            ("fldSUoQi47", 18, PROD_PTJ92),
-            ("fldMxRQhnU", 18, PROC["#1020"]),
+            ("fldSUoQi47", 18, PROD["PTJ92"]),
+            ("fldMxRQhnU", 18, proc_id("PTJ92", "#1020")),
         ],
     },
     "vewDNLBqX5": {
@@ -42,8 +36,8 @@ PTJ92_VIEWS = {
         "keep": COMMON_KEEP | {"上道批号_PTJ92#3040", "上道批号"},
         # 本视图显示 #3040 报工行；上道池在字段「上道批号_PTJ92#3040」单独筛 #1020
         "filter": [
-            ("fldSUoQi47", 18, PROD_PTJ92),
-            ("fldMxRQhnU", 18, PROC["#3040"]),
+            ("fldSUoQi47", 18, PROD["PTJ92"]),
+            ("fldMxRQhnU", 18, proc_id("PTJ92", "#3040")),
         ],
     },
     "vewhTfcmic": {
@@ -51,31 +45,31 @@ PTJ92_VIEWS = {
         "keep": COMMON_KEEP | {"上道批号_PTJ92#50", "上道批号"},
         # 本视图显示 #50 报工行；上道池在字段「上道批号_PTJ92#50」单独筛 #3040
         "filter": [
-            ("fldSUoQi47", 18, PROD_PTJ92),
-            ("fldMxRQhnU", 18, PROC["#50"]),
+            ("fldSUoQi47", 18, PROD["PTJ92"]),
+            ("fldMxRQhnU", 18, proc_id("PTJ92", "#50")),
         ],
     },
 }
 
 UPSTREAM_FIELDS = (
-    ("上道批号_PTJ92#3040", PROC["#1020"]),
-    ("上道批号_PTJ92#50", PROC["#3040"]),
+    ("上道批号_PTJ92#3040", proc_id("PTJ92", "#1020")),
+    ("上道批号_PTJ92#50", proc_id("PTJ92", "#3040")),
 )
 
 UPSTREAM_POOL_VIEWS = (
     (
         "PTJ92·上道池#1020",
         [
-            ("fldSUoQi47", 18, PROD_PTJ92),
-            ("fldMxRQhnU", 18, PROC["#1020"]),
+            ("fldSUoQi47", 18, PROD["PTJ92"]),
+            ("fldMxRQhnU", 18, proc_id("PTJ92", "#1020")),
             ("fld1PUlkCs", 3, STATUS_CONFIRMED),
         ],
     ),
     (
         "PTJ92·上道池#3040",
         [
-            ("fldSUoQi47", 18, PROD_PTJ92),
-            ("fldMxRQhnU", 18, PROC["#3040"]),
+            ("fldSUoQi47", 18, PROD["PTJ92"]),
+            ("fldMxRQhnU", 18, proc_id("PTJ92", "#3040")),
             ("fld1PUlkCs", 3, STATUS_CONFIRMED),
         ],
     ),
@@ -144,7 +138,7 @@ def patch_view_filter(
 
 def verify_view_filters(client: Client) -> list[str]:
     lines: list[str] = []
-    proc_by_id = {v: k for k, v in PROC.items()}
+    proc_by_id = {proc_id("PTJ92", c): c for c in ("#1020", "#3040", "#50")}
     expected_proc = {
         "vew2SeSRgG": "#1020",
         "vewDNLBqX5": "#3040",
@@ -197,7 +191,8 @@ def run(dry_run: bool) -> int:
 
     for name, upstream in UPSTREAM_FIELDS:
         msg, _ = recreate_upstream_field(client, name, dry_run)
-        lines.append(f"{msg} (上道工序应为 {next(k for k,v in PROC.items() if v==upstream)})")
+        up_code = "#1020" if upstream == proc_id("PTJ92", "#1020") else "#3040"
+        lines.append(f"{msg} (上道工序应为 {up_code})")
 
     for view_id, spec in PTJ92_VIEWS.items():
         lines.append(patch_view_filter(client, view_id, spec["name"], spec["filter"], dry_run))

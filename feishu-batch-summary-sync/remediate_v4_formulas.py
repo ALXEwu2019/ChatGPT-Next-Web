@@ -21,31 +21,26 @@ TRACE = "tblWv5lus3TI8zM3"
 CTRL_BATCH_COL = "fldVkXzRxj"
 CTRL_LINK = "fldxfgJtRE"
 GENERIC_UP = "fldDnQmyR6"
+STOPPER_ROOT = "fldfvRkDZf"
+ZHIDONG_ROOT = "fldw7KlgX9"
 
 # 首道 per-view 关联管控批（PTJ92 首道用通用 关联管控批 fldxfgJtRE）
-FIRST_CTRL = ("fldxfgJtRE", "fldfvRkDZf", "flde9u7r8S")
+FIRST_CTRL = (CTRL_LINK, STOPPER_ROOT, ZHIDONG_ROOT)
 
-# 下道 per-view 上道批号（各报工视图专用）
-UPSTREAM_PV = (
-    "fldlSVdUxR",  # STOPPER #4050
-    "fldyLk2vMC",  # STOPPER #60
-    "fldICbx5p7",  # STOPPER #70
-    "fldvjM58FP",  # 止动块 #60
-    "flds7u3fTQ",  # 止动块 #70
-    "fld8FPWbLM",  # 止动块 #80
-    "fld09hh79X",  # PTJ92 #3040
-    "fldaJjkrtj",  # PTJ92 #50
-)
+# 下道 per-view 上道批号（按产品根管控列区分）
+STOPPER_UPSTREAM_PV = ("fldlSVdUxR", "fldyLk2vMC", "fldICbx5p7")
+ZHIDONG_UPSTREAM_PV = ("fldnIvYzdx", "fldvjM58FP", "flds7u3fTQ", "fld8FPWbLM")
+PTJ92_UPSTREAM_PV = ("fld09hh79X", "fldaJjkrtj")
 
-# per-view 多跳链：每项为完整路径，末段为关联管控批列或 per-view 首道管控列
+# per-view 多跳链：末段为对应产品首道关联管控批列
 MULTI_HOP_CHAINS: tuple[tuple[str, ...], ...] = (
     ("fldaJjkrtj", "fld09hh79X", CTRL_LINK),
-    ("fldyLk2vMC", "fldlSVdUxR", CTRL_LINK),
-    ("fldICbx5p7", "fldyLk2vMC", "fldlSVdUxR", CTRL_LINK),
-    ("fldvjM58FP", "flde9u7r8S"),
-    ("flds7u3fTQ", "flde9u7r8S"),
-    ("flds7u3fTQ", "fldvjM58FP", "flde9u7r8S"),
-    ("fld8FPWbLM", "flds7u3fTQ", "fldvjM58FP", "flde9u7r8S"),
+    ("fldyLk2vMC", "fldlSVdUxR", STOPPER_ROOT),
+    ("fldICbx5p7", "fldyLk2vMC", "fldlSVdUxR", STOPPER_ROOT),
+    ("fldvjM58FP", "fldnIvYzdx", ZHIDONG_ROOT),
+    ("flds7u3fTQ", "fldnIvYzdx", ZHIDONG_ROOT),
+    ("flds7u3fTQ", "fldvjM58FP", "fldnIvYzdx", ZHIDONG_ROOT),
+    ("fld8FPWbLM", "flds7u3fTQ", "fldvjM58FP", "fldnIvYzdx", ZHIDONG_ROOT),
 )
 
 
@@ -66,15 +61,17 @@ def _generic_hops(n: int) -> str:
     return _ctrl_batch_term(*hops)
 
 
-def _pv_one_hop(field_id: str) -> str:
-    return _ctrl_batch_term(field_id, CTRL_LINK)
+def _pv_one_hop(field_id: str, root: str = CTRL_LINK) -> str:
+    return _ctrl_batch_term(field_id, root)
 
 
 def build_batch_text_expr() -> str:
     """批号文本：首道管控 + 通用上道链 + per-view 上道链。"""
     terms = [_ctrl_batch_term(f) for f in FIRST_CTRL]
     terms.extend(_generic_hops(i) for i in range(1, 5))
-    terms.extend(_pv_one_hop(f) for f in UPSTREAM_PV)
+    terms.extend(_pv_one_hop(f, STOPPER_ROOT) for f in STOPPER_UPSTREAM_PV)
+    terms.extend(_pv_one_hop(f, ZHIDONG_ROOT) for f in ZHIDONG_UPSTREAM_PV)
+    terms.extend(_pv_one_hop(f, CTRL_LINK) for f in PTJ92_UPSTREAM_PV)
     terms.extend(_ctrl_batch_term(*chain) for chain in MULTI_HOP_CHAINS)
     return "CONCATENATE(" + ",".join(terms) + ")"
 
@@ -82,7 +79,9 @@ def build_batch_text_expr() -> str:
 def build_upstream_batch_expr() -> str:
     """生产批号_上道：无首道项，其余与批号文本同构。"""
     terms = [_generic_hops(i) for i in range(1, 5)]
-    terms.extend(_pv_one_hop(f) for f in UPSTREAM_PV)
+    terms.extend(_pv_one_hop(f, STOPPER_ROOT) for f in STOPPER_UPSTREAM_PV)
+    terms.extend(_pv_one_hop(f, ZHIDONG_ROOT) for f in ZHIDONG_UPSTREAM_PV)
+    terms.extend(_pv_one_hop(f, CTRL_LINK) for f in PTJ92_UPSTREAM_PV)
     terms.extend(_ctrl_batch_term(*chain) for chain in MULTI_HOP_CHAINS)
     return "CONCATENATE(" + ",".join(terms) + ")"
 
@@ -185,6 +184,7 @@ PV_UPSTREAM_NAMES = (
     "上道批号_STOPPER#4050",
     "上道批号_STOPPER#60",
     "上道批号_STOPPER#70",
+    "上道批号_止动块#4050",
     "上道批号_止动块#60",
     "上道批号_止动块#70",
     "上道批号_止动块#80",

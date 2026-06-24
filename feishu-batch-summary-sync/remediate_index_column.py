@@ -22,7 +22,7 @@ from pathlib import Path
 
 from advance_v4_greenfield import Client
 from remediate_v4_formulas import build_batch_text_expr, patch_formulas
-from sync_batch_summary import load_config
+from sync_batch_summary import feishu_credentials_ok, load_config
 
 APP = "HiqNwQnxniKGEGketZBcEC9Sn3d"
 MAIN = "tblXr4h68tqh2HDy"
@@ -136,6 +136,9 @@ def verify_samples(client: Client) -> list[str]:
 
 def run(restore: bool, apply_index: bool, refresh_formulas: bool, dry_run: bool, verify: bool) -> int:
     cfg = load_config(Path(__file__).with_name("config.json"))
+    if not feishu_credentials_ok(cfg):
+        print("ERROR: 请配置飞书凭证")
+        return 1
     client = Client(cfg["feishu"]["app_id"], cfg["feishu"]["app_secret"])
 
     print("remediate_index_column — 修复索引列 / 批号公式红叹号")

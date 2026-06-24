@@ -10,7 +10,7 @@ from pathlib import Path
 
 import requests
 
-from sync_batch_summary import load_config
+from sync_batch_summary import feishu_credentials_ok, load_config
 
 BASE = "https://open.feishu.cn/open-apis"
 APP = "HiqNwQnxniKGEGketZBcEC9Sn3d"
@@ -299,6 +299,9 @@ def verify_samples(client: Client) -> list[str]:
 
 def run(dry_run: bool, verify: bool, dedupe_upstream: bool) -> int:
     cfg = load_config(Path(__file__).with_name("config.json"))
+    if not feishu_credentials_ok(cfg):
+        print("ERROR: 请配置飞书凭证")
+        return 1
     client = Client(cfg["feishu"]["app_id"], cfg["feishu"]["app_secret"])
 
     print("remediate_v4_formulas — 生产日志主表公式修复")

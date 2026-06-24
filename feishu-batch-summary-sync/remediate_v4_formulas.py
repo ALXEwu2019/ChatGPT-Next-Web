@@ -17,32 +17,84 @@ APP = "HiqNwQnxniKGEGketZBcEC9Sn3d"
 MAIN = "tblXr4h68tqh2HDy"
 TRACE = "tblWv5lus3TI8zM3"
 
+# 管控表批号文本列；主表关联管控批列
+CTRL_BATCH_COL = "fldVkXzRxj"
+CTRL_LINK = "fldxfgJtRE"
+GENERIC_UP = "fldDnQmyR6"
+
+# 首道：通用关联管控批（per-view 首道管控由报工视图填写，公式不单独引用）
+FIRST_CTRL = ("fldxfgJtRE",)
+
+# 下道 per-view 上道批号（各报工视图专用）
+UPSTREAM_PV = (
+    "fldlSVdUxR",  # STOPPER #4050
+    "fldyLk2vMC",  # STOPPER #60
+    "fldICbx5p7",  # STOPPER #70
+    "fldvjM58FP",  # 止动块 #60
+    "flds7u3fTQ",  # 止动块 #70
+    "fld8FPWbLM",  # 止动块 #80
+    "fld09hh79X",  # PTJ92 #3040
+    "fldaJjkrtj",  # PTJ92 #50
+)
+
+# per-view 多跳链：每项为完整路径，末段为关联管控批列或 per-view 首道管控列
+MULTI_HOP_CHAINS: tuple[tuple[str, ...], ...] = (
+    ("fldaJjkrtj", "fld09hh79X", CTRL_LINK),
+    ("fldyLk2vMC", "fldlSVdUxR", CTRL_LINK),
+    ("fldICbx5p7", "fldyLk2vMC", "fldlSVdUxR", CTRL_LINK),
+    ("fldvjM58FP", "flde9u7r8S"),
+    ("flds7u3fTQ", "flde9u7r8S"),
+    ("flds7u3fTQ", "fldvjM58FP", "flde9u7r8S"),
+    ("fld8FPWbLM", "flds7u3fTQ", "fldvjM58FP", "flde9u7r8S"),
+)
+
+
+def _ref(field_id: str) -> str:
+    return f"bitable::$table[{MAIN}].$field[{field_id}]"
+
+
+def _ctrl_batch_term(*path: str) -> str:
+    """沿关联字段路径读取管控表批号文本。"""
+    expr = _ref(path[0])
+    for col in path[1:]:
+        expr += f".$column[{col}]"
+    return expr + f".$column[{CTRL_BATCH_COL}]"
+
+
+def _generic_hops(n: int) -> str:
+    hops = [GENERIC_UP] * n + [CTRL_LINK]
+    return _ctrl_batch_term(*hops)
+
+
+def _pv_one_hop(field_id: str) -> str:
+    return _ctrl_batch_term(field_id, CTRL_LINK)
+
+
+def build_batch_text_expr() -> str:
+    """批号文本：首道管控 + 通用上道链 + per-view 上道链。"""
+    terms = [_ctrl_batch_term(f) for f in FIRST_CTRL]
+    terms.extend(_generic_hops(i) for i in range(1, 5))
+    terms.extend(_pv_one_hop(f) for f in UPSTREAM_PV)
+    terms.extend(_ctrl_batch_term(*chain) for chain in MULTI_HOP_CHAINS)
+    return "CONCATENATE(" + ",".join(terms) + ")"
+
+
+def build_upstream_batch_expr() -> str:
+    """生产批号_上道：无首道项，其余与批号文本同构。"""
+    terms = [_generic_hops(i) for i in range(1, 5)]
+    terms.extend(_pv_one_hop(f) for f in UPSTREAM_PV)
+    terms.extend(_ctrl_batch_term(*chain) for chain in MULTI_HOP_CHAINS)
+    return "CONCATENATE(" + ",".join(terms) + ")"
+
+
 # field_id -> (field_name, formula_expression)
 FORMULAS: dict[str, tuple[str, str]] = {
-  # 批号：首道=管控批；下道沿上道链回溯至首道管控（最多 4 跳，覆盖 #80）
-  "fldD86odYI": (
-    "批号文本",
-    "CONCATENATE("
-    "bitable::$table[tblXr4h68tqh2HDy].$field[fldxfgJtRE].$column[fldVkXzRxj],"
-    "bitable::$table[tblXr4h68tqh2HDy].$field[fldDnQmyR6].$column[fldxfgJtRE].$column[fldVkXzRxj],"
-    "bitable::$table[tblXr4h68tqh2HDy].$field[fldDnQmyR6].$column[fldDnQmyR6].$column[fldxfgJtRE].$column[fldVkXzRxj],"
-    "bitable::$table[tblXr4h68tqh2HDy].$field[fldDnQmyR6].$column[fldDnQmyR6].$column[fldDnQmyR6].$column[fldxfgJtRE].$column[fldVkXzRxj],"
-    "bitable::$table[tblXr4h68tqh2HDy].$field[fldDnQmyR6].$column[fldDnQmyR6].$column[fldDnQmyR6].$column[fldDnQmyR6].$column[fldxfgJtRE].$column[fldVkXzRxj]"
-    ")",
-  ),
+  "fldD86odYI": ("批号文本", build_batch_text_expr()),
   "fldvMRl868": (
     "生产批号",
     "bitable::$table[tblXr4h68tqh2HDy].$field[fldD86odYI]",
   ),
-  "fldncziHl9": (
-    "生产批号_上道",
-    "CONCATENATE("
-    "bitable::$table[tblXr4h68tqh2HDy].$field[fldDnQmyR6].$column[fldxfgJtRE].$column[fldVkXzRxj],"
-    "bitable::$table[tblXr4h68tqh2HDy].$field[fldDnQmyR6].$column[fldDnQmyR6].$column[fldxfgJtRE].$column[fldVkXzRxj],"
-    "bitable::$table[tblXr4h68tqh2HDy].$field[fldDnQmyR6].$column[fldDnQmyR6].$column[fldDnQmyR6].$column[fldxfgJtRE].$column[fldVkXzRxj],"
-    "bitable::$table[tblXr4h68tqh2HDy].$field[fldDnQmyR6].$column[fldDnQmyR6].$column[fldDnQmyR6].$column[fldDnQmyR6].$column[fldxfgJtRE].$column[fldVkXzRxj]"
-    ")",
-  ),
+  "fldncziHl9": ("生产批号_上道", build_upstream_batch_expr()),
   "fldPVR3fmV": ("填报月日", 'TEXT(NOW(),"MMDD")'),
   "fldYty1rzM": (
     "完整追溯号",
@@ -124,6 +176,49 @@ def extract_text(value) -> str | None:
     return str(value) if value != "" else None
 
 
+def has_upstream_link(fields: dict, field_name: str) -> bool:
+    v = fields.get(field_name)
+    return bool(v and isinstance(v, list) and v[0].get("record_ids"))
+
+
+PV_UPSTREAM_NAMES = (
+    "上道批号_STOPPER#4050",
+    "上道批号_STOPPER#60",
+    "上道批号_STOPPER#70",
+    "上道批号_止动块#60",
+    "上道批号_止动块#70",
+    "上道批号_止动块#80",
+    "上道批号_PTJ92#3040",
+    "上道批号_PTJ92#50",
+)
+
+
+def dedupe_upstream_links(client: Client, dry_run: bool) -> list[str]:
+    """若已填 per-view 上道批号，清空通用上道批号，避免批号公式 CONCATENATE 重复拼接。"""
+    data = client.call("GET", f"/bitable/v1/apps/{APP}/tables/{MAIN}/records", params={"page_size": 500})
+    lines: list[str] = []
+    for it in data.get("data", {}).get("items", []):
+        f = it.get("fields", {})
+        if not has_upstream_link(f, "上道批号"):
+            continue
+        if not any(has_upstream_link(f, name) for name in PV_UPSTREAM_NAMES):
+            continue
+        rid = it["record_id"]
+        if dry_run:
+            lines.append(f"[dry-run] clear 上道批号 on {rid}")
+            continue
+        resp = client.call(
+            "PUT",
+            f"/bitable/v1/apps/{APP}/tables/{MAIN}/records/{rid}",
+            json={"fields": {"上道批号": None}},
+        )
+        ok = resp.get("code") == 0
+        lines.append(f"{'cleared' if ok else 'FAIL'} 上道批号 on {rid}: {resp.get('msg', '')}")
+    if not lines:
+        lines.append("skip: no dual-filled upstream rows")
+    return lines
+
+
 def patch_formulas(client: Client, dry_run: bool) -> list[str]:
     lines: list[str] = []
     for field_id, (name, expr) in FORMULAS.items():
@@ -141,7 +236,7 @@ def patch_formulas(client: Client, dry_run: bool) -> list[str]:
 
 
 def verify_samples(client: Client) -> list[str]:
-    """Spot-check S-TEST-A chain after formula recalc."""
+    """Spot-check S-TEST-A / P-TEST-A chains after formula recalc."""
     time.sleep(8)
     data = client.call("GET", f"/bitable/v1/apps/{APP}/tables/{MAIN}/records", params={"page_size": 500})
     items = data.get("data", {}).get("items", [])
@@ -168,21 +263,57 @@ def verify_samples(client: Client) -> list[str]:
             f"{'PASS' if ok_batch else 'FAIL'} {proc} 批号={batch!r} | "
             f"{'PASS' if ok_trace else 'FAIL'} 追溯={'有' if trace else '空'} | 有效合格={valid}"
         )
+
+    ptj_rows = [
+        it for it in items
+        if extract_text(it.get("fields", {}).get("工序代码")) in ("#1020", "#3040", "#50")
+        and extract_text(it.get("fields", {}).get("批号文本"))
+    ]
+    if not ptj_rows:
+        checks.append("WARN: no PTJ92 rows with 批号文本 (table may be empty)")
+    else:
+        for it in ptj_rows:
+            f = it["fields"]
+            proc = extract_text(f.get("工序代码"))
+            batch = extract_text(f.get("批号文本"))
+            up_pv = any(has_upstream_link(f, n) for n in PV_UPSTREAM_NAMES)
+            if proc in ("#3040", "#50") and up_pv:
+                ok = bool(batch)
+                checks.append(
+                    f"{'PASS' if ok else 'FAIL'} PTJ92 {proc} per-view上道 批号={batch!r}"
+                )
+            elif proc == "#1020":
+                ok = bool(batch)
+                checks.append(f"{'PASS' if ok else 'FAIL'} PTJ92 #1020 首道 批号={batch!r}")
+
+    dup = [
+        extract_text(it.get("fields", {}).get("批号文本"))
+        for it in items
+        if extract_text(it.get("fields", {}).get("批号文本", "")) and "S-TEST-AS-TEST-A" in str(
+            extract_text(it.get("fields", {}).get("批号文本"))
+        )
+    ]
+    checks.append(f"{'PASS' if not dup else 'FAIL'} 无批号重复拼接 (found {len(dup)})")
     return checks
 
 
-def run(dry_run: bool, verify: bool) -> int:
+def run(dry_run: bool, verify: bool, dedupe_upstream: bool) -> int:
     cfg = load_config(Path(__file__).with_name("config.json"))
     client = Client(cfg["feishu"]["app_id"], cfg["feishu"]["app_secret"])
 
     print("remediate_v4_formulas — 生产日志主表公式修复")
     print("-" * 60)
+    if dedupe_upstream:
+        print("去重：清空与 per-view 上道重复的通用上道批号")
+        for line in dedupe_upstream_links(client, dry_run):
+            print(line)
+        print("-" * 60)
     for line in patch_formulas(client, dry_run):
         print(line)
 
     if verify and not dry_run:
         print("-" * 60)
-        print("抽样验收 (S-TEST-A):")
+        print("抽样验收 (S-TEST-A / P-TEST-A):")
         for line in verify_samples(client):
             print(line)
 
@@ -194,9 +325,14 @@ def main() -> int:
     p = argparse.ArgumentParser(description="Fix v4 greenfield production log formulas")
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--no-verify", action="store_true")
+    p.add_argument(
+        "--dedupe-upstream",
+        action="store_true",
+        help="清空与 per-view 上道重复的通用上道批号，避免批号 CONCATENATE 重复",
+    )
     args = p.parse_args()
     try:
-        return run(args.dry_run, verify=not args.no_verify)
+        return run(args.dry_run, verify=not args.no_verify, dedupe_upstream=args.dedupe_upstream)
     except Exception as e:
         print(f"ERROR: {e}")
         return 1

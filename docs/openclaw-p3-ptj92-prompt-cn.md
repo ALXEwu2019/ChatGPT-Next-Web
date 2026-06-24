@@ -38,11 +38,21 @@
 
 ## 字段 ID（2026-06-24 重建后）
 
-| 字段 | field_id |
-| --- | --- |
-| 关联管控批_PTJ92#1020 | `fldz51rjwu` |
-| 上道批号_PTJ92#3040 | `fld09hh79X` |
-| 上道批号_PTJ92#50 | `fldaJjkrtj` |
+| 字段 | field_id | 说明 |
+| --- | --- | --- |
+| 关联管控批（首道通用） | `fldxfgJtRE` | #1020 首道填此字段；`fldz51rjwu` 未建 |
+| 上道批号_PTJ92#3040 | `fld09hh79X` | #3040 下道选 #1020 |
+| 上道批号_PTJ92#50 | `fldaJjkrtj` | #50 下道选 #3040 |
+
+## 批号文本公式（2026-06-24 修复）
+
+下道报工只填 per-view 上道字段时，`批号文本` 须沿 `上道批号_PTJ92#*` 链回溯至首道管控批。执行：
+
+```bash
+python3 remediate_v4_formulas.py --dedupe-upstream
+```
+
+`--dedupe-upstream` 会清空与 per-view 重复的通用 `上道批号`，避免 STOPPER 链 `S-TEST-AS-TEST-A` 类重复拼接。
 
 ## 视图 1：PTJ92·#1020报工（首道）
 

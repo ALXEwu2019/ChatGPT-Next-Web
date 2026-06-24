@@ -94,7 +94,6 @@ def ensure_upstream_chain(client: Client, dry_run: bool) -> list[str]:
                     client,
                     it["record_id"],
                     {
-                        "上道批号": [UPSTREAM_STOPPER_4050],
                         "上道批号_STOPPER#60": [UPSTREAM_STOPPER_4050],
                     },
                     dry_run,
@@ -253,7 +252,6 @@ def seed_end_process_rows(client: Client, dry_run: bool) -> list[str]:
             "fields": {
                 "产品": [PROD_STOPPER],
                 "工序代码": [PROC["#70"]],
-                "上道批号": [UPSTREAM_STOPPER_60],
                 "上道批号_STOPPER#70": [UPSTREAM_STOPPER_60],
                 "合格数量": 55,
                 "报废数量": 0,

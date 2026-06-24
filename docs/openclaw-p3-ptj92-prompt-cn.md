@@ -28,11 +28,21 @@
 
 ## 视图 ID
 
-| 视图 | view_id |
+| 视图 | view_id | 用途 |
+| --- | --- | --- |
+| PTJ92·#1020报工 | `vew2SeSRgG` | 首道报工 |
+| PTJ92·#3040报工 | `vewDNLBqX5` | 下道 #3040 报工 |
+| PTJ92·#50报工 | `vewhTfcmic` | 末道 #50 报工 |
+| PTJ92·上道池#1020 | `vewUBpKJqq` | 只读参考：#3040 上道候选 |
+| PTJ92·上道池#3040 | `veweKyAuA8` | 只读参考：#50 上道候选 |
+
+## 字段 ID（2026-06-24 重建后）
+
+| 字段 | field_id |
 | --- | --- |
-| PTJ92·#1020报工 | `vew2SeSRgG` |
-| PTJ92·#3040报工 | `vewDNLBqX5` |
-| PTJ92·#50报工 | `vewhTfcmic` |
+| 关联管控批_PTJ92#1020 | `fldz51rjwu` |
+| 上道批号_PTJ92#3040 | `fld09hh79X` |
+| 上道批号_PTJ92#50 | `fldaJjkrtj` |
 
 ## 视图 1：PTJ92·#1020报工（首道）
 

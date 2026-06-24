@@ -26,6 +26,11 @@ PROD_PTJ92 = "recvnngInM41nM"
 
 RECON_VIEW = "vewEEYWvZN"
 PTJ92_VIEWS = ("PTJ92·#1020报工", "PTJ92·#3040报工", "PTJ92·#50报工")
+PTJ92_VIEW_FILTERS = {
+    "PTJ92·#1020报工": "#1020",
+    "PTJ92·#3040报工": "#3040",
+    "PTJ92·#50报工": "#50",
+}
 PTJ92_FIELDS = ("关联管控批_PTJ92#1020", "上道批号_PTJ92#3040", "上道批号_PTJ92#50")
 
 
@@ -130,6 +135,31 @@ def main() -> int:
     ok &= check("PTJ92 per-view 字段", set(PTJ92_FIELDS).issubset(main_fields), str(PTJ92_FIELDS))
     main_views = view_names(app, MAIN, headers)
     ok &= check("PTJ92 报工视图", all(v in main_views for v in PTJ92_VIEWS), "3 视图")
+
+    view_items = requests.get(
+        f"{BASE}/bitable/v1/apps/{app}/tables/{MAIN}/views",
+        headers=headers,
+        params={"page_size": 100},
+        timeout=30,
+    ).json()["data"]["items"]
+    view_by_name = {v["view_name"]: v["view_id"] for v in view_items}
+    proc_map = {PROC_1020: "#1020", "recST53o7KuXQy": "#3040", "recRxX5JjvzuEm": "#50"}
+    for vname, exp_proc in PTJ92_VIEW_FILTERS.items():
+        vid = view_by_name.get(vname)
+        if not vid:
+            ok &= check(f"PTJ92视图筛选 {vname}", False, "view missing")
+            continue
+        detail = requests.get(
+            f"{BASE}/bitable/v1/apps/{app}/tables/{MAIN}/views/{vid}",
+            headers=headers,
+            timeout=30,
+        ).json()["data"]["view"]
+        got = None
+        for c in (detail.get("property", {}).get("filter_info") or {}).get("conditions") or []:
+            if c.get("field_id") == "fldMxRQhnU":
+                val = json.loads(c.get("value") or "[]")
+                got = proc_map.get(val[0], val[0]) if val else None
+        ok &= check(f"PTJ92视图筛选 {vname}", got == exp_proc, f"工序={got} 期望{exp_proc}")
 
     ctrl = list_records(app, CTRL, headers)
     ptj_ctrl = any(

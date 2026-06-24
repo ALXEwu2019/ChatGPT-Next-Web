@@ -14,7 +14,7 @@ from advance_v4_greenfield import APP, MAIN, VIEW_KEEP, Client
 from advance_v4_extensions import COMMON_KEEP
 from process_registry import FIRST_CTRL_FIELD, OPERATOR_VIEWS, UPSTREAM_FIELD
 from remediate_index_column import LOG_NO
-from remediate_v4_formulas import FORMULAS
+from remediate_v4_formulas import build_formulas, fetch_upstream_field_ids
 from sync_batch_summary import feishu_credentials_ok, load_config
 
 LINKAGE = "tblUyVVrhKQOu1pO"
@@ -106,7 +106,12 @@ def audit_index_column(client: Client, res: AuditResult) -> None:
 
 def audit_canonical_formulas(client: Client, res: AuditResult) -> None:
     fields = {f["field_id"]: f for f in client.list_fields(MAIN)}
-    for fid, (name, expected) in FORMULAS.items():
+    try:
+        expected_formulas = build_formulas(fetch_upstream_field_ids(client))
+    except RuntimeError as e:
+        res.fail("公式字段·批号依赖", str(e))
+        return
+    for fid, (name, expected) in expected_formulas.items():
         f = fields.get(fid)
         if not f:
             res.fail(f"公式字段·{name}", f"缺失 field_id={fid}")

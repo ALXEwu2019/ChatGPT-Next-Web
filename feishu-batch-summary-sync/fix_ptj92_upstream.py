@@ -210,9 +210,12 @@ def run(dry_run: bool) -> int:
             print(line)
         print("-" * 60)
         print("请在飞书界面逐视图配置「上道批号_PTJ92#*」关联筛选（OpenAPI 无法写入）：")
-        print("  PTJ92·#3040报工 → 上道批号_PTJ92#3040 (fld09hh79X)")
+        fields = {f["field_name"]: f["field_id"] for f in client.list_fields(MAIN)}
+        id3040 = fields.get("上道批号_PTJ92#3040", "?")
+        id50 = fields.get("上道批号_PTJ92#50", "?")
+        print(f"  PTJ92·#3040报工 → 上道批号_PTJ92#3040 ({id3040})")
         print("    工序代码 = #1020 · 工序下发状态 = 已确认 · 产品 = PTJ92")
-        print("  PTJ92·#50报工 → 上道批号_PTJ92#50 (fldaJjkrtj)")
+        print(f"  PTJ92·#50报工 → 上道批号_PTJ92#50 ({id50})")
         print("    工序代码 = #3040 · 工序下发状态 = 已确认 · 产品 = PTJ92")
         print("  可参考只读上道池视图：PTJ92·上道池#1020 / PTJ92·上道池#3040")
 

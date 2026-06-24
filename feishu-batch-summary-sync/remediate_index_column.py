@@ -21,7 +21,7 @@ import sys
 from pathlib import Path
 
 from advance_v4_greenfield import Client
-from remediate_v4_formulas import build_batch_text_expr, patch_formulas
+from remediate_v4_formulas import build_batch_text_expr, fetch_upstream_field_ids, patch_formulas
 from sync_batch_summary import feishu_credentials_ok, load_config
 
 APP = "HiqNwQnxniKGEGketZBcEC9Sn3d"
@@ -41,14 +41,11 @@ AUTO_SERIAL_PROP = {
 }
 
 
-def build_safe_index_expr() -> str:
+def build_safe_index_expr(name_to_id: dict[str, str]) -> str:
     """批号链路内联 + 工序代码（走关联列，不引用本行公式列）。"""
-    batch_inner = build_batch_text_expr()[len("CONCATENATE(") : -1]
+    batch_inner = build_batch_text_expr(name_to_id)[len("CONCATENATE(") : -1]
     proc = f"bitable::$table[{MAIN}].$field[{PROC_LINK}].$column[{PROC_CODE_COL}]"
     return f'CONCATENATE({batch_inner},"-",{proc})'
-
-
-SAFE_INDEX_EXPR = build_safe_index_expr()
 
 
 def get_field(client: Client, field_id: str) -> dict | None:
@@ -58,19 +55,19 @@ def get_field(client: Client, field_id: str) -> dict | None:
     return None
 
 
-def apply_safe_index(client: Client, dry_run: bool) -> str:
+def apply_safe_index(client: Client, dry_run: bool, safe_expr: str) -> str:
     f = get_field(client, LOG_NO)
     if not f:
         return "FAIL: 日志编号 field missing"
     if dry_run:
-        return f"[dry-run] set 日志编号 formula (len={len(SAFE_INDEX_EXPR)})"
+        return f"[dry-run] set 日志编号 formula (len={len(safe_expr)})"
     resp = client.call(
         "PUT",
         f"/bitable/v1/apps/{APP}/tables/{MAIN}/fields/{LOG_NO}",
         json={
             "field_name": "日志编号",
             "type": 20,
-            "property": {"formula_expression": SAFE_INDEX_EXPR},
+            "property": {"formula_expression": safe_expr},
         },
     )
     ok = resp.get("code") == 0
@@ -140,10 +137,12 @@ def run(restore: bool, apply_index: bool, refresh_formulas: bool, dry_run: bool,
         print("ERROR: 请配置飞书凭证")
         return 1
     client = Client(cfg["feishu"]["app_id"], cfg["feishu"]["app_secret"])
+    name_to_id = fetch_upstream_field_ids(client)
+    safe_index_expr = build_safe_index_expr(name_to_id)
 
     print("remediate_index_column — 修复索引列 / 批号公式红叹号")
     print("-" * 60)
-    print(f"安全索引公式长度: {len(SAFE_INDEX_EXPR)} 字符")
+    print(f"安全索引公式长度: {len(safe_index_expr)} 字符")
     print("规则: 索引列只走关联字段 .$column 路径，不引用本行 批号文本/生产批号")
     print("-" * 60)
 
@@ -154,7 +153,7 @@ def run(restore: bool, apply_index: bool, refresh_formulas: bool, dry_run: bool,
         for line in patch_formulas(client, dry_run):
             print(line)
     if apply_index:
-        print(apply_safe_index(client, dry_run))
+        print(apply_safe_index(client, dry_run, safe_index_expr))
 
     if verify and not dry_run:
         print("-" * 60)

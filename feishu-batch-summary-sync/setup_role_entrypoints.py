@@ -11,6 +11,12 @@ from pathlib import Path
 
 from advance_v4_greenfield import Client
 from advance_v4_extensions import patch_view_columns
+from defect_rework_schema import (
+    LEADER_DEFECT_KEEP as DEFECT_LEADER_KEEP,
+    LEADER_MAIN_KEEP,
+    QA_DEFECT_KEEP as DEFECT_QA_KEEP,
+    QA_MAIN_KEEP,
+)
 from sync_batch_summary import load_config
 
 APP = "HiqNwQnxniKGEGketZBcEC9Sn3d"
@@ -57,70 +63,9 @@ OPERATOR_VIEW_KEEP: dict[str, set[str]] = {
 }
 
 LEADER_MAIN_VIEW = "vewQhe4OjQ"  # 班组长·返工回填
-LEADER_MAIN_KEEP = {
-    "日志编号",
-    "产品",
-    "工序代码",
-    "工序下发状态",
-    "批号文本",
-    "生产批号",
-    "合格数量",
-    "报废数量",
-    "返工后合格数",
-    "返工后报废数",
-    "是否有不良",
-}
-
 QA_MAIN_VIEW = "vewECvrwqs"  # 品保·待确认
-QA_MAIN_KEEP = {
-    "日志编号",
-    "产品",
-    "工序代码",
-    "工序下发状态",
-    "批号文本",
-    "生产批号",
-    "合格数量",
-    "报废数量",
-    "返工后合格数",
-    "返工后报废数",
-    "有效合格数量",
-    "有效报废数量",
-    "是否有不良",
-}
-
 DEFECT_QA_VIEW = "vewGh4QxtW"  # 品保·不良填报
-DEFECT_QA_KEEP = {
-    "明细编号",
-    "关联生产记录",
-    "生产批号",
-    "完整追溯号",
-    "不良数量",
-    "不良原因",
-    "处置类型",
-    "状态",
-}
-
 DEFECT_LEADER_VIEW = "vewy8lBInU"  # 班组长·待返工
-DEFECT_LEADER_KEEP = {
-    "关联生产记录",
-    "生产批号",
-    "产品",
-    "工序代码",
-    "实收不良数量",
-    "不良原因",
-    "处置类型",
-    "不良类型",
-    "登记人",
-    "通知时间",
-    "返工任务状态",
-    "返工后合格数",
-    "返工后报废数",
-    "返工人",
-    "确认人",
-    "备注",
-    "状态",
-    "不良数量",
-}
 
 # 三角色入口清单（文档/验收输出）
 ENTRYPOINTS = [

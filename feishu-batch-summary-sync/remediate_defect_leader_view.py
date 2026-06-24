@@ -18,26 +18,7 @@ LEADER_VIEW = "vewy8lBInU"
 
 TASK_PENDING = "optfSvslQY"  # 返工任务状态·待返工（回退筛选用）
 
-LEADER_KEEP = {
-    "关联生产记录",
-    "生产批号",
-    "产品",
-    "工序代码",
-    "实收不良数量",
-    "不良原因",
-    "处置类型",
-    "不良类型",
-    "登记人",
-    "通知时间",
-    "返工任务状态",
-    "返工后合格数",
-    "返工后报废数",
-    "返工人",
-    "确认人",
-    "备注",
-    "状态",
-    "不良数量",
-}
+from defect_rework_schema import LEADER_DEFECT_KEEP as LEADER_KEEP
 
 
 def ensure_single_select(

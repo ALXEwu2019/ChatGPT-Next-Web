@@ -116,7 +116,7 @@
 | 顺序  | 收藏名称   | 链接                                                                                                                | 表单/操作字段                                                 |
 | --- | ------ | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
 | 1   | 品保-记不良 | [品保·不良录入表单](https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblMtQ4aEwlzuhWs&view=vewhGXZnqB) | 新建：**关联生产记录** ★、**不良数量** ★、**不良原因** ★、**处置类型** ★（返工/报废） |
-| 2   | 品保-待确认 | [品保·待确认](https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblXr4h68tqh2HDy&view=vewECvrwqs)  | 将 **工序下发状态** 改为 **已确认**（行状态应为「待品保确认」）                   |
+| 2   | 品保-待确认 | [品保·待确认表单](https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblXr4h68tqh2HDy&view=vewlHIaE38)  | 将 **工序下发状态** 改为 **已确认**（行状态应为「待品保确认」）                   |
 
 
 **品保记不良 · 处置类型：**

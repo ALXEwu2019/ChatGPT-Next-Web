@@ -22,8 +22,8 @@ CTRL_BATCH_COL = "fldVkXzRxj"
 CTRL_LINK = "fldxfgJtRE"
 GENERIC_UP = "fldDnQmyR6"
 
-# 首道：通用关联管控批（per-view 首道管控由报工视图填写，公式不单独引用）
-FIRST_CTRL = ("fldxfgJtRE",)
+# 首道 per-view 关联管控批（PTJ92 首道用通用 关联管控批 fldxfgJtRE）
+FIRST_CTRL = ("fldxfgJtRE", "fldfvRkDZf", "flde9u7r8S")
 
 # 下道 per-view 上道批号（各报工视图专用）
 UPSTREAM_PV = (

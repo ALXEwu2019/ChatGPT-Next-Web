@@ -107,7 +107,7 @@
 | 顺序  | 收藏名称     | 链接                                                                                                                 | 表单/操作字段                                  |
 | --- | -------- | ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------- |
 | 1   | 班组长-看待返工 | [班组长·待返工](https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblMtQ4aEwlzuhWs&view=vewy8lBInU)  | 只读核对：关联生产记录、不良数量、不良原因、处置类型               |
-| 2   | 班组长-返工回填 | [班组长·返工回填](https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblXr4h68tqh2HDy&view=vewQhe4OjQ) | 编辑：**返工后合格数** ★、**返工后报废数** ★（行状态应为「待返工」） |
+| 2   | 班组长-返工回填 | [班组长·返工回填表单](https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblXr4h68tqh2HDy&view=vewzCBs9ta) | 编辑：**返工后合格数** ★、**返工后报废数** ★（行状态应为「待返工」） |
 
 
 ### 品保（2 个入口）
@@ -115,7 +115,7 @@
 
 | 顺序  | 收藏名称   | 链接                                                                                                                | 表单/操作字段                                                 |
 | --- | ------ | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| 1   | 品保-记不良 | [品保·不良填报](https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblMtQ4aEwlzuhWs&view=vewGh4QxtW) | 新建：**关联生产记录** ★、**不良数量** ★、**不良原因** ★、**处置类型** ★（返工/报废） |
+| 1   | 品保-记不良 | [品保·不良录入表单](https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblMtQ4aEwlzuhWs&view=vewhGXZnqB) | 新建：**关联生产记录** ★、**不良数量** ★、**不良原因** ★、**处置类型** ★（返工/报废） |
 | 2   | 品保-待确认 | [品保·待确认](https://kcnfxml9dtzq.feishu.cn/wiki/HiqNwQnxniKGEGketZBcEC9Sn3d?table=tblXr4h68tqh2HDy&view=vewECvrwqs)  | 将 **工序下发状态** 改为 **已确认**（行状态应为「待品保确认」）                   |
 
 

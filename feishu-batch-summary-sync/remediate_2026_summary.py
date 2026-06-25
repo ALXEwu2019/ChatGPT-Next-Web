@@ -193,7 +193,7 @@ def fix_schema(client: Client, dry_run: bool) -> list[str]:
             lines.append(f"[dry-run] hide/delete {name}")
             continue
         resp = client.hide_field(SUM_TABLE, f)
-        if resp.get("code") == 0:
+        if resp.get("code") == 0 and f.get("type") != 20:
             lines.append(f"hidden: {name}")
             continue
         del_resp = client.delete_field(SUM_TABLE, f["field_id"])
@@ -224,7 +224,47 @@ def dedupe_rows(client: Client, dry_run: bool) -> list[str]:
     return [f"{'deleted' if ok else 'FAIL'} {len(to_delete)} legacy rows — {resp.get('msg', '')}"]
 
 
-def run(cfg: dict, audit_only: bool, fix_schema_flag: bool, dedupe: bool, sync: bool, dry_run: bool) -> int:
+def backfill_production_areas(client: Client, dry_run: bool) -> list[str]:
+    """从批工序键回填 生产区域；修正 #4050 残缺键。"""
+    lines: list[str] = []
+    for it in client.list_records(SUM_TABLE):
+        f = it.get("fields", {})
+        proc = extract_text(f.get("工序代码"))
+        key = extract_text(f.get("批工序键"))
+        area = extract_text(f.get("生产区域"))
+        rid = it["record_id"]
+        updates: dict[str, str] = {}
+
+        if proc == "#2030" and key and not area:
+            suffix = key.rsplit("-", 1)[-1]
+            if suffix in ("A", "B", "C"):
+                updates["生产区域"] = suffix
+        elif proc == "#4050":
+            if key.endswith("-") or key.endswith("#4050") or "MG" not in key:
+                mg = area or "MG02"
+                updates["生产区域"] = mg
+                updates["批工序键"] = f"{extract_text(f.get('批号文本'))}-#4050-{mg}"
+            elif not area and "-MG" in key:
+                updates["生产区域"] = key.split("-MG", 1)[-1]
+
+        if not updates:
+            continue
+        if dry_run:
+            lines.append(f"[dry-run] backfill {rid}: {updates}")
+            continue
+        resp = client.call(
+            "PUT",
+            f"/bitable/v1/apps/{APP}/tables/{SUM_TABLE}/records/{rid}",
+            json={"fields": updates},
+        )
+        ok = resp.get("code") == 0
+        lines.append(f"{'backfill' if ok else 'FAIL'} {rid}: {updates} — {resp.get('msg', '')}")
+    if not lines:
+        lines.append("skip: 生产区域已齐全")
+    return lines
+
+
+def run(cfg: dict, audit_only: bool, fix_schema_flag: bool, dedupe: bool, backfill: bool, sync: bool, dry_run: bool) -> int:
     client = Client(cfg["feishu"]["app_id"], cfg["feishu"]["app_secret"])
     print("remediate_2026_summary — 2026 批工序产量汇总表")
     print(f"App {APP}  Table {SUM_TABLE}")
@@ -243,6 +283,11 @@ def run(cfg: dict, audit_only: bool, fix_schema_flag: bool, dedupe: bool, sync: 
     if dedupe:
         print("\n## 清理重复行")
         for line in dedupe_rows(client, dry_run):
+            print(line)
+
+    if backfill:
+        print("\n## 回填生产区域")
+        for line in backfill_production_areas(client, dry_run):
             print(line)
 
     if sync and not dry_run:
@@ -268,19 +313,28 @@ def main() -> int:
     p.add_argument("--audit", action="store_true", help="只读审计")
     p.add_argument("--fix-schema", action="store_true", help="隐藏/删除遗留字段，补生产区域")
     p.add_argument("--dedupe-rows", action="store_true", help="删除无同步批次号的旧重复行")
+    p.add_argument("--backfill-areas", action="store_true", help="从批工序键回填生产区域")
     p.add_argument("--sync", action="store_true", help="执行 sync_batch_summary 写入")
-    p.add_argument("--fix-all", action="store_true", help="= --fix-schema --dedupe-rows")
+    p.add_argument("--fix-all", action="store_true", help="= --fix-schema --dedupe-rows --backfill-areas")
     p.add_argument("--dry-run", action="store_true")
     args = p.parse_args()
     if args.fix_all:
         args.fix_schema = True
         args.dedupe_rows = True
-    if not any((args.audit, args.fix_schema, args.dedupe_rows, args.sync, args.fix_all)):
+        args.backfill_areas = True
+    if not any((args.audit, args.fix_schema, args.dedupe_rows, args.backfill_areas, args.sync, args.fix_all)):
         args.audit = True
     try:
         cfg = load_2026_config()
-        return run(cfg, args.audit and not args.fix_schema and not args.dedupe_rows and not args.sync,
-                 args.fix_schema, args.dedupe_rows, args.sync, args.dry_run)
+        return run(
+            cfg,
+            args.audit and not args.fix_schema and not args.dedupe_rows and not args.backfill_areas and not args.sync,
+            args.fix_schema,
+            args.dedupe_rows,
+            args.backfill_areas,
+            args.sync,
+            args.dry_run,
+        )
     except Exception as e:
         print(f"ERROR: {e}")
         return 1

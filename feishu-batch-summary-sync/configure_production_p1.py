@@ -22,8 +22,6 @@ CTRL_TABLE = "tblyvJJhyq5KoT4F"
 PROC_STOPPER_2030 = "recAV0kYI0r5LS"
 
 HIDE_FIELD_NAMES = {
-    "#4050磨床-STOPPER",
-    "#4050磨床-止动块",
     "#50-PTJ92",
 }
 
@@ -106,6 +104,12 @@ class Client:
             json=body,
         )
 
+    def delete_field(self, table_id: str, field_id: str) -> dict:
+        return self.call(
+            "DELETE",
+            f"/bitable/v1/apps/{APP_TOKEN}/tables/{table_id}/fields/{field_id}",
+        )
+
     def add_status_option(self, field: dict) -> dict:
         options = list(field.get("property", {}).get("options", []))
         if any(o.get("name") == "已确认" for o in options):
@@ -171,7 +175,13 @@ def hide_region_fields(client: Client, dry_run: bool) -> list[str]:
             continue
         resp = client.hide_field(MAIN_TABLE, field)
         ok = resp.get("code") == 0
-        lines.append(f"{'hidden' if ok else 'FAIL'}: {name}")
+        if ok:
+            lines.append(f"hidden: {name}")
+            continue
+        del_resp = client.delete_field(MAIN_TABLE, field["field_id"])
+        lines.append(
+            f"{'deleted' if del_resp.get('code') == 0 else 'FAIL'}: {name} — {del_resp.get('msg', '')}"
+        )
     return lines
 
 
@@ -185,7 +195,13 @@ def align_status_option(client: Client, dry_run: bool) -> list[str]:
 
 
 def run(dry_run: bool = False) -> int:
-    cfg = load_config(Path(__file__).with_name("config.json"))
+    cfg_path = Path(__file__).with_name("config.2026.json")
+    if cfg_path.exists():
+        from remediate_2026_summary import load_2026_config
+
+        cfg = load_2026_config()
+    else:
+        cfg = load_config(Path(__file__).with_name("config.json"))
     client = Client(cfg["feishu"]["app_id"], cfg["feishu"]["app_secret"])
     results: list[str] = []
     results.extend(align_status_option(client, dry_run))

@@ -150,11 +150,20 @@ class FeishuClient:
 def load_config(path: Path) -> dict[str, Any]:
     with path.open(encoding="utf-8") as f:
         cfg = json.load(f)
+    # config.2026.json 指向生产 Base，勿被 config.local.json 的 wiki token 覆盖
+    is_2026 = path.name == "config.2026.json"
     local = path.with_name("config.local.json")
     if local.exists():
         with local.open(encoding="utf-8") as f:
             local_cfg = json.load(f)
         for key, val in local_cfg.items():
+            if key == "feishu" and is_2026:
+                feishu_local = val if isinstance(val, dict) else {}
+                cfg.setdefault("feishu", {})
+                for k in ("app_id", "app_secret"):
+                    if feishu_local.get(k):
+                        cfg["feishu"][k] = feishu_local[k]
+                continue
             if isinstance(val, dict) and isinstance(cfg.get(key), dict):
                 cfg[key].update(val)
             else:

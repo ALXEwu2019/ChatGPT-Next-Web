@@ -20,5 +20,6 @@ fi
 {
   echo "===== $(date -Iseconds) sync_2026 start ====="
   "$PYTHON" "$SCRIPT_DIR/sync_batch_summary.py" --config "$CONFIG" -v
+  "$PYTHON" "$SCRIPT_DIR/sync_control_reconciliation.py" --config "$CONFIG"
   echo "===== $(date -Iseconds) sync_2026 done ====="
 } >>"$LOG_FILE" 2>&1

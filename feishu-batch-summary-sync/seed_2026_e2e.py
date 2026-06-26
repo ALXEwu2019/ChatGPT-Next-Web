@@ -52,6 +52,12 @@ UPSTREAM = {
     ("PTJ92", "#50"): "上道批号_PTJ92#50",
 }
 
+PRODUCT_COL = {
+    "STOPPER": ("产品-STOPPER", "STOPPER"),
+    "止动块": ("产品-止动块", "止动块"),
+    "PTJ92": ("产品-PTJ92", "PTJ92"),
+}
+
 MARKER = {
     ("止动块", "#4050"): "#4050磨床-止动块",
     ("止动块", "#60"): "#60检查机-止动块",
@@ -127,7 +133,6 @@ def create_row(
     dry_run: bool,
 ) -> str:
     fields: dict = {
-        "产品": [PROD[product]],
         "操作工": [OPERATOR],
         "班次": [SHIFT],
         "填报日期": REPORT_DATE_MS,
@@ -142,6 +147,8 @@ def create_row(
     up_field = UPSTREAM.get((product, code))
     if upstream_id and up_field:
         fields[up_field] = [upstream_id]
+    prod_col, prod_val = PRODUCT_COL[product]
+    fields[prod_col] = prod_val
     marker = MARKER.get((product, code))
     if marker:
         fields[marker] = marker

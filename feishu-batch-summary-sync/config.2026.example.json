@@ -34,7 +34,8 @@
     "production_log": {
       "batch_text": "批号文本",
       "batch_text_fallback": "生产批号",
-      "product": "产品",
+      "product": "产品 1",
+      "product_fallback": "产品名称文本",
       "process_code": "工序代码",
       "production_area": "生产区域",
       "valid_qualified": "有效合格数量",

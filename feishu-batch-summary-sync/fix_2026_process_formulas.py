@@ -20,7 +20,8 @@ from sync_batch_summary import extract_text
 MAIN = MAIN_TABLE
 PROC_TABLE = "tblt0I1rLezriVTM"
 
-PRODUCT_NAME = "fldxzxo5Tp"
+PRODUCT_ONE = "fldzeIITrZ"  # 产品 1（per-view 合并）
+PRODUCT_NAME = "fldxzxo5Tp"  # 产品名称文本 = 产品 1
 PROC_NAME_FIELD = "fldN48QWI4"
 PROC_CODE_FIELD = "fldwknKvOm"
 BATCH_TEXT_FIELD = "fldn9YCUgm"
@@ -78,12 +79,12 @@ def _any_not_blank(*field_ids: str) -> str:
 
 
 def _product_is(name: str) -> str:
-    return f'{_ref(PRODUCT_NAME)}="{name}"'
+    return f'{_ref(PRODUCT_ONE)}="{name}"'
 
 
 def build_process_code_expr() -> str:
     """按产品 + 已填标记/区域/管控列推断工序代码（不依赖工序名称）。"""
-    p = _ref(PRODUCT_NAME)
+    p = _ref(PRODUCT_ONE)
     return (
         "IFS("
         f'AND({_product_is("STOPPER")},{_any_not_blank(UP_STOPPER_70)}),"#70",'

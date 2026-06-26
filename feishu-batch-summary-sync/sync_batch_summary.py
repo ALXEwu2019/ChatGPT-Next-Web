@@ -397,6 +397,8 @@ def parse_production_records(
 
         if link_resolver:
             product = link_resolver.resolve("product", fields.get(field_map["product"]))
+            if not product and field_map.get("product_fallback"):
+                product = extract_text(fields.get(field_map["product_fallback"]))
             process_code = link_resolver.resolve(
                 "process", fields.get(field_map["process_code"])
             )
@@ -404,6 +406,8 @@ def parse_production_records(
                 process_code = extract_text(fields.get(field_map["process_code"]))
         else:
             product = extract_text(fields.get(field_map["product"]))
+            if not product and field_map.get("product_fallback"):
+                product = extract_text(fields.get(field_map["product_fallback"]))
             process_code = extract_text(fields.get(field_map["process_code"]))
 
         parsed.append(

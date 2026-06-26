@@ -9,7 +9,8 @@
 修复：
   - 不良明细 批号文本 / 生产批号 → 关联生产记录.$column[主表.批号文本]
   - 返工完成清单 批号文本 → 关联生产记录.$column[主表.批号文本]
-  - 顺带修复 生产区域 引用已删除列
+  - 生产区域：按工序读取主表 per-view 区域填报（#2030 A/B/C、#4050 MG、#60 J、#1020 J），
+    不再只镜像批号后缀 A/B/C 汇总列
 
 用法:
   python3 fix_2026_defect_batch_fields.py --dry-run
@@ -34,9 +35,17 @@ DEFECT_BATCH_TEXT = "fldF0FVlh6"
 DEFECT_REGION = "fldVz3W2gH"
 MAIN_BATCH_TEXT = "fldn9YCUgm"
 MAIN_REGION = "fldguHnQGf"
+MAIN_PROC_CODE = "fldwknKvOm"
 MAIN_TRACE = "fldvkctHVc"
+R2030_A = "fldwCQJKV9"
+R2030_B = "fldpcw0RNH"
+R2030_C = "fldzwiw1T5"
+R4050_IN = "fld22XgABz"
+R60_IN = "fldKXNHi9M"
+R1020_IN = "fldg7t68ZR"
 
 REWORK_BATCH_TEXT = "fldYKvdvRJ"
+REWORK_REGION = "fldGzNLXAH"
 REWORK_LINK = "fldZJCYfgv"
 
 PROD_BATCH_NAME = "生产批号"
@@ -44,6 +53,26 @@ PROD_BATCH_NAME = "生产批号"
 
 def _link_expr(table: str, link_field: str, target_col: str) -> str:
     return f"bitable::$table[{table}].$field[{link_field}].$column[{target_col}]"
+
+
+def build_production_area_expr(table: str, link_field: str) -> str:
+    """镜像主表实际填报区域：优先 per-view 输入，回退批号后缀 A/B/C。"""
+    link = f"bitable::$table[{table}].$field[{link_field}]"
+    code = f"{link}.$column[{MAIN_PROC_CODE}]"
+    auto = f"{link}.$column[{MAIN_REGION}]"
+    r2030 = (
+        f"IF(NOT(ISBLANK({link}.$column[{R2030_A}])),{link}.$column[{R2030_A}],"
+        f"IF(NOT(ISBLANK({link}.$column[{R2030_B}])),{link}.$column[{R2030_B}],"
+        f'IF(NOT(ISBLANK({link}.$column[{R2030_C}])),{link}.$column[{R2030_C}],"")))'
+    )
+    return (
+        "IFS("
+        f'{code}="#2030",IF(NOT(ISBLANK({r2030})),{r2030},{auto}),'
+        f'{code}="#4050",IF(NOT(ISBLANK({link}.$column[{R4050_IN}])),{link}.$column[{R4050_IN}],{auto}),'
+        f'{code}="#60",IF(NOT(ISBLANK({link}.$column[{R60_IN}])),{link}.$column[{R60_IN}],{auto}),'
+        f'{code}="#1020",IF(NOT(ISBLANK({link}.$column[{R1020_IN}])),{link}.$column[{R1020_IN}],{auto}),'
+        f"TRUE(),{auto})"
+    )
 
 
 def patch_formula(client: Client, table: str, field_id: str, name: str, expr: str, dry_run: bool) -> str:
@@ -91,8 +120,11 @@ def verify(client: Client) -> list[str]:
         batch = extract_text(f.get("批号文本"))
         prod_batch = extract_text(f.get(PROD_BATCH_NAME))
         ok = bool(batch) and batch == prod_batch
+        region = extract_text(f.get("生产区域"))
+        ok = bool(batch) and batch == prod_batch and bool(region)
         lines.append(
-            f"{'PASS' if ok else 'FAIL'} {row['record_id']} 批号文本={batch!r} 生产批号={prod_batch!r}"
+            f"{'PASS' if ok else 'FAIL'} {row['record_id']} "
+            f"批号={batch!r} 生产批号={prod_batch!r} 生产区域={region!r}"
         )
 
     rework_rows = client.list_records(REWORK)
@@ -100,8 +132,12 @@ def verify(client: Client) -> list[str]:
     for row in rework_rows:
         f = row["fields"]
         batch = extract_text(f.get("批号文本"))
-        ok = bool(batch)
-        lines.append(f"{'PASS' if ok else 'FAIL'} {row['record_id']} 批号文本={batch!r}")
+        region = extract_text(f.get("生产区域"))
+        ok = bool(batch) and bool(region)
+        lines.append(
+            f"{'PASS' if ok else 'FAIL'} {row['record_id']} "
+            f"批号文本={batch!r} 生产区域={region!r}"
+        )
     return lines
 
 
@@ -123,7 +159,7 @@ def run(dry_run: bool) -> int:
             DEFECT,
             DEFECT_REGION,
             "生产区域",
-            _link_expr(DEFECT, DEFECT_LINK, MAIN_REGION),
+            build_production_area_expr(DEFECT, DEFECT_LINK),
             dry_run,
         )
     )
@@ -131,6 +167,16 @@ def run(dry_run: bool) -> int:
     rework_batch_expr = _link_expr(REWORK, REWORK_LINK, MAIN_BATCH_TEXT)
     lines.append(
         patch_formula(client, REWORK, REWORK_BATCH_TEXT, "批号文本", rework_batch_expr, dry_run)
+    )
+    lines.append(
+        patch_formula(
+            client,
+            REWORK,
+            REWORK_REGION,
+            "生产区域",
+            build_production_area_expr(REWORK, REWORK_LINK),
+            dry_run,
+        )
     )
 
     # 完整追溯号：表单常用，一并镜像

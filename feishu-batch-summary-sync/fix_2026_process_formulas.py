@@ -41,6 +41,9 @@ R4050_STOPPER = "fld22XgABz"
 M60_STOPPER = "fld0HRCruy"
 R60_STOPPER = "fldKXNHi9M"
 M70_STOPPER = "fldwEfoLvq"
+UP_STOPPER_4050 = "fldSGcDH2t"
+UP_STOPPER_60 = "fldIgshIew"
+UP_STOPPER_70 = "fldJN9WVxn"
 
 # 止动块
 M2030_ZD = "fld4NnbIfV"
@@ -49,6 +52,9 @@ M4050_ZD = "fldWDhWqEH"
 M60_ZD = "fldg3CgFwM"
 M70_ZD = "fld8SCSOIG"
 M80_ZD = "fldeguzZ66"
+UP_ZD_60 = "fldGcZZ2MC"
+UP_ZD_70 = "fldlFD16M7"
+UP_ZD_80 = "fldXudQ5F0"
 
 # PTJ92
 M1020_PTJ = "fldsdBrnXH"
@@ -56,6 +62,8 @@ CTRL_PTJ_1020 = "fldn15sQzq"
 R1020_PTJ = "fldg7t68ZR"
 M3040_PTJ = "fld84mJwip"
 M50_PTJ = "fldWvyWtNF"
+UP_PTJ_3040 = "fldyTJWQOT"
+UP_PTJ_50 = "fldRzTmNOI"
 
 
 def _ref(field_id: str) -> str:
@@ -78,15 +86,23 @@ def build_process_code_expr() -> str:
     p = _ref(PRODUCT_NAME)
     return (
         "IFS("
+        f'AND({_product_is("STOPPER")},{_any_not_blank(UP_STOPPER_70)}),"#70",'
+        f'AND({_product_is("STOPPER")},{_any_not_blank(UP_STOPPER_60)}),"#60",'
+        f'AND({_product_is("STOPPER")},{_any_not_blank(UP_STOPPER_4050)}),"#4050",'
         f'AND({_product_is("STOPPER")},{_any_not_blank(M70_STOPPER)}),"#70",'
         f'AND({_product_is("STOPPER")},{_any_not_blank(M60_STOPPER, R60_STOPPER)}),"#60",'
         f'AND({_product_is("STOPPER")},{_any_not_blank(M4050_STOPPER, R4050_STOPPER)}),"#4050",'
         f'AND({_product_is("STOPPER")},{_any_not_blank(M2030_STOPPER, CTRL_STOPPER_2030, R2030_A, R2030_B, R2030_C)}),"#2030",'
+        f'AND({_product_is("止动块")},{_any_not_blank(UP_ZD_80)}),"#80",'
+        f'AND({_product_is("止动块")},{_any_not_blank(UP_ZD_70)}),"#70",'
+        f'AND({_product_is("止动块")},{_any_not_blank(UP_ZD_60)}),"#60",'
         f'AND({_product_is("止动块")},{_any_not_blank(M80_ZD)}),"#80",'
         f'AND({_product_is("止动块")},{_any_not_blank(M70_ZD)}),"#70",'
         f'AND({_product_is("止动块")},{_any_not_blank(M60_ZD)}),"#60",'
         f'AND({_product_is("止动块")},{_any_not_blank(M4050_ZD, CTRL_ZD_4050)}),"#4050",'
         f'AND({_product_is("止动块")},{_any_not_blank(M2030_ZD)}),"#2030",'
+        f'AND({_product_is("PTJ92")},{_any_not_blank(UP_PTJ_50)}),"#50",'
+        f'AND({_product_is("PTJ92")},{_any_not_blank(UP_PTJ_3040)}),"#3040",'
         f'AND({_product_is("PTJ92")},{_any_not_blank(M50_PTJ)}),"#50",'
         f'AND({_product_is("PTJ92")},{_any_not_blank(M3040_PTJ)}),"#3040",'
         f'AND({_product_is("PTJ92")},{_any_not_blank(M1020_PTJ, CTRL_PTJ_1020, R1020_PTJ)}),"#1020",'
@@ -116,9 +132,11 @@ def build_process_name_expr() -> str:
 
 
 def build_region_2030_expr() -> str:
-    """#2030 区域：优先区域列，否则空。"""
+    a, b, c = _ref(R2030_A), _ref(R2030_B), _ref(R2030_C)
     return (
-        f"IFERROR({_ref(R2030_A)},IFERROR({_ref(R2030_B)},{_ref(R2030_C)}))"
+        f"IF(NOT(ISBLANK({a})),{a},"
+        f"IF(NOT(ISBLANK({b})),{b},"
+        f'IF(NOT(ISBLANK({c})),{c},"")))'
     )
 
 

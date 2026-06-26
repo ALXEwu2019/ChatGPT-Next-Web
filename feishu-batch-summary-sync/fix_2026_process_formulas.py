@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""修复 2026 主表 工序名称/工序代码 公式（删除横向区域列后引用失效）。"""
+"""修复 2026 主表工序/追溯公式（工序名称、工序代码、批工序键、完整追溯号）。
+
+根因：工序标记列 #2030车床自动化-STOPPER 已删除；工序名称公式引用失效导致下游全空。
+
+用法:
+  python3 fix_2026_process_formulas.py --dry-run
+  python3 fix_2026_process_formulas.py --fix
+"""
 
 from __future__ import annotations
 
@@ -7,80 +14,156 @@ import argparse
 import sys
 import time
 
-import requests
-
 from remediate_2026_summary import APP, MAIN_TABLE, Client, load_2026_config
+from sync_batch_summary import extract_text
 
-# 工序名称 LIST 中仍存在的 per-工序标记列（勿含已删横向区域列）
-PROCESS_MARKER_FIELDS = (
-    "fldanuNtgL",  # #2030车床自动化-STOPPER
-    "fld0HRCruy",  # #60检查机-STOPPER
-    "fldwEfoLvq",  # #70出库-STOPPER
-    "fld4NnbIfV",  # #2030车床自动化-止动块
-    "fldg3CgFwM",  # #60检查机-止动块
-    "fld8SCSOIG",  # #70外观检-止动块
-    "fldeguzZ66",  # #80出库-止动块
-    "fldsdBrnXH",  # #1020车床自动化-PTJ92
-    "fld84mJwip",  # #3040-PTJ92
-)
+MAIN = MAIN_TABLE
+PROC_TABLE = "tblt0I1rLezriVTM"
 
+PRODUCT_NAME = "fldxzxo5Tp"
 PROC_NAME_FIELD = "fldN48QWI4"
 PROC_CODE_FIELD = "fldwknKvOm"
-PROC_AREA_AUTO_FIELD = "fldguHnQGf"
 BATCH_TEXT_FIELD = "fldn9YCUgm"
-PROC_TABLE = "tblt0I1rLezriVTM"
-PROC_NAME_COL = "fldm2TVT2R"
-PROC_CODE_COL = "fldLgPguMy"
+BATCH_KEY_FIELD = "fldnWH0ZKH"
+FULL_TRACE_FIELD = "fldvkctHVc"
+MONTH_DAY_FIELD = "fld7P48wOM"
+DEVICE_SUFFIX_FIELD = "fldnYmMJlV"
+PROC_AREA_AUTO_FIELD = "fldguHnQGf"
 
-RECREATE_MARKERS = (
-    ("#4050磨床-STOPPER", ["#4050磨床-STOPPER"]),
-    ("#4050磨床-止动块", ["#4050磨床-止动块"]),
-)
+# STOPPER
+M2030_STOPPER = "fldQncuYR6"
+CTRL_STOPPER_2030 = "fldQ7m86rl"
+R2030_A = "fldwCQJKV9"
+R2030_B = "fldpcw0RNH"
+R2030_C = "fldzwiw1T5"
+M4050_STOPPER = "fldmeVALU6"
+R4050_STOPPER = "fld22XgABz"
+M60_STOPPER = "fld0HRCruy"
+R60_STOPPER = "fldKXNHi9M"
+M70_STOPPER = "fldwEfoLvq"
+
+# 止动块
+M2030_ZD = "fld4NnbIfV"
+CTRL_ZD_4050 = "fldL9IMguv"
+M4050_ZD = "fldWDhWqEH"
+M60_ZD = "fldg3CgFwM"
+M70_ZD = "fld8SCSOIG"
+M80_ZD = "fldeguzZ66"
+
+# PTJ92
+M1020_PTJ = "fldsdBrnXH"
+CTRL_PTJ_1020 = "fldn15sQzq"
+R1020_PTJ = "fldg7t68ZR"
+M3040_PTJ = "fld84mJwip"
+M50_PTJ = "fldWvyWtNF"
+
+
+def _ref(field_id: str) -> str:
+    return f"bitable::$table[{MAIN}].$field[{field_id}]"
+
+
+def _any_not_blank(*field_ids: str) -> str:
+    if len(field_ids) == 1:
+        return f"NOT(ISBLANK({_ref(field_ids[0])}))"
+    inner = ",".join(f"NOT(ISBLANK({_ref(fid)}))" for fid in field_ids)
+    return f"OR({inner})"
+
+
+def _product_is(name: str) -> str:
+    return f'{_ref(PRODUCT_NAME)}="{name}"'
+
+
+def build_process_code_expr() -> str:
+    """按产品 + 已填标记/区域/管控列推断工序代码（不依赖工序名称）。"""
+    p = _ref(PRODUCT_NAME)
+    return (
+        "IFS("
+        f'AND({_product_is("STOPPER")},{_any_not_blank(M70_STOPPER)}),"#70",'
+        f'AND({_product_is("STOPPER")},{_any_not_blank(M60_STOPPER, R60_STOPPER)}),"#60",'
+        f'AND({_product_is("STOPPER")},{_any_not_blank(M4050_STOPPER, R4050_STOPPER)}),"#4050",'
+        f'AND({_product_is("STOPPER")},{_any_not_blank(M2030_STOPPER, CTRL_STOPPER_2030, R2030_A, R2030_B, R2030_C)}),"#2030",'
+        f'AND({_product_is("止动块")},{_any_not_blank(M80_ZD)}),"#80",'
+        f'AND({_product_is("止动块")},{_any_not_blank(M70_ZD)}),"#70",'
+        f'AND({_product_is("止动块")},{_any_not_blank(M60_ZD)}),"#60",'
+        f'AND({_product_is("止动块")},{_any_not_blank(M4050_ZD, CTRL_ZD_4050)}),"#4050",'
+        f'AND({_product_is("止动块")},{_any_not_blank(M2030_ZD)}),"#2030",'
+        f'AND({_product_is("PTJ92")},{_any_not_blank(M50_PTJ)}),"#50",'
+        f'AND({_product_is("PTJ92")},{_any_not_blank(M3040_PTJ)}),"#3040",'
+        f'AND({_product_is("PTJ92")},{_any_not_blank(M1020_PTJ, CTRL_PTJ_1020, R1020_PTJ)}),"#1020",'
+        'TRUE(),"")'
+    )
 
 
 def build_process_name_expr() -> str:
-    refs = ",".join(f"bitable::$table[{MAIN_TABLE}].$field[{fid}]" for fid in PROCESS_MARKER_FIELDS)
+    """由产品 + 工序代码映射工序表标准名称。"""
+    code = _ref(PROC_CODE_FIELD)
     return (
-        "ARRAYJOIN("
-        f"FILTER(LIST({refs}),NOT(ISBLANK(CurrentValue))),"
-        '","'
+        "IFS("
+        f'AND({_product_is("STOPPER")},{code}="#2030"),"#2030车床自动化-STOPPER",'
+        f'AND({_product_is("STOPPER")},{code}="#4050"),"#4050磨床-STOPPER",'
+        f'AND({_product_is("STOPPER")},{code}="#60"),"#60检查机-STOPPER",'
+        f'AND({_product_is("STOPPER")},{code}="#70"),"#70出库-STOPPER",'
+        f'AND({_product_is("止动块")},{code}="#2030"),"#2030车床自动化-止动块",'
+        f'AND({_product_is("止动块")},{code}="#4050"),"#4050磨床-止动块",'
+        f'AND({_product_is("止动块")},{code}="#60"),"#60检查机-止动块",'
+        f'AND({_product_is("止动块")},{code}="#70"),"#70外观检-止动块",'
+        f'AND({_product_is("止动块")},{code}="#80"),"#80出库-止动块",'
+        f'AND({_product_is("PTJ92")},{code}="#1020"),"#1020车床自动化-PTJ92",'
+        f'AND({_product_is("PTJ92")},{code}="#3040"),"#3040-PTJ92",'
+        f'AND({_product_is("PTJ92")},{code}="#50"),"#50-PTJ92",'
+        'TRUE(),"")'
+    )
+
+
+def build_region_2030_expr() -> str:
+    """#2030 区域：优先区域列，否则空。"""
+    return (
+        f"IFERROR({_ref(R2030_A)},IFERROR({_ref(R2030_B)},{_ref(R2030_C)}))"
+    )
+
+
+def build_batch_key_expr() -> str:
+    batch = _ref(BATCH_TEXT_FIELD)
+    code = _ref(PROC_CODE_FIELD)
+    r2030 = build_region_2030_expr()
+    r4050 = f"IFERROR({_ref(R4050_STOPPER)},{_ref(PROC_AREA_AUTO_FIELD)})"
+    return (
+        "IFS("
+        f'ISBLANK({batch}),"",'
+        f'ISBLANK({code}),"",'
+        f'{code}="#2030",CONCATENATE({batch},"-",{code},"-",{r2030}),'
+        f'{code}="#4050",CONCATENATE({batch},"-",{code},"-",{r4050}),'
+        f'TRUE(),CONCATENATE({batch},"-",{code})'
         ")"
     )
 
 
-def build_process_code_expr() -> str:
+def build_full_trace_expr() -> str:
+    """完整追溯号：批号-月日-区域/工位后缀（与现网逻辑一致，引用已校验字段）。"""
+    batch = _ref(BATCH_TEXT_FIELD)
+    month = _ref(MONTH_DAY_FIELD)
+    code = _ref(PROC_CODE_FIELD)
+    suffix = _ref(DEVICE_SUFFIX_FIELD)
+    r2030 = build_region_2030_expr()
+    r4050 = _ref(R4050_STOPPER)
+    r60 = _ref(R60_STOPPER)
+    r1020 = _ref(R1020_PTJ)
+    trace_suffix = (
+        f"IF(ISBLANK({suffix}),"
+        f"IFS({code}=\"#2030\",{r2030},{code}=\"#4050\",{r4050},{code}=\"#60\",{r60},{code}=\"#1020\",{r1020},TRUE(),\"\"),"
+        f"{suffix})"
+    )
     return (
-        f'IFERROR(FIRST(bitable::$table[{PROC_TABLE}].FILTER('
-        f"CurrentValue.$column[{PROC_NAME_COL}] = "
-        f"bitable::$table[{MAIN_TABLE}].$field[{PROC_NAME_FIELD}]"
-        f").$column[{PROC_CODE_COL}]),\"\")"
+        f"IF(OR(ISBLANK({batch}),ISBLANK({month}),ISBLANK({code})),\"\","
+        f"IF(OR({code}=\"#3040-50\",{code}=\"#3040\",{code}=\"#50\",{code}=\"#1020\",{code}=\"#70\",{code}=\"#80\"),"
+        f"CONCATENATE({batch},\"-\",{month}),"
+        f"IF(ISBLANK({trace_suffix}),\"\","
+        f"CONCATENATE({batch},\"-\",{month},\"-\",{trace_suffix}))))"
     )
-
-
-def recreate_marker_field(client: Client, name: str, options: list[str], dry_run: bool) -> str:
-    fields = {f["field_name"]: f for f in client.list_fields(MAIN_TABLE)}
-    if name in fields:
-        return f"skip exists: {name}"
-    if dry_run:
-        return f"[dry-run] create {name}"
-    resp = client.call(
-        "POST",
-        f"/bitable/v1/apps/{APP}/tables/{MAIN_TABLE}/fields",
-        json={
-            "field_name": name,
-            "type": 3,
-            "property": {"options": [{"name": o} for o in options]},
-        },
-    )
-    if resp.get("code") != 0:
-        return f"FAIL create {name}: {resp.get('msg')}"
-    fid = resp.get("data", {}).get("field", {}).get("field_id")
-    return f"created: {name} ({fid})"
 
 
 def build_production_area_expr() -> str:
-    """从批号文本末段推断 A/B/C（#2030 合并区）；-D 批次归入 C 区。"""
-    batch = f"bitable::$table[{MAIN_TABLE}].$field[{BATCH_TEXT_FIELD}]"
+    batch = _ref(BATCH_TEXT_FIELD)
     return (
         f'IF(CONTAINTEXT({batch},"-A"),"A",'
         f'IF(CONTAINTEXT({batch},"-B"),"B",'
@@ -88,53 +171,28 @@ def build_production_area_expr() -> str:
     )
 
 
-def patch_area_formula(client: Client, dry_run: bool) -> list[str]:
-    expr = build_production_area_expr()
+def patch_field(client: Client, field_id: str, name: str, expr: str, dry_run: bool) -> str:
     if dry_run:
-        return [f"[dry-run] patch 生产区域_自动计算 (len={len(expr)})"]
+        return f"[dry-run] patch {name} (len={len(expr)})"
     resp = client.call(
         "PUT",
-        f"/bitable/v1/apps/{APP}/tables/{MAIN_TABLE}/fields/{PROC_AREA_AUTO_FIELD}",
-        json={
-            "field_name": "生产区域_自动计算",
-            "type": 20,
-            "property": {"formula_expression": expr},
-        },
+        f"/bitable/v1/apps/{APP}/tables/{MAIN_TABLE}/fields/{field_id}",
+        json={"field_name": name, "type": 20, "property": {"formula_expression": expr}},
     )
-    return [f"{'ok' if resp.get('code')==0 else 'FAIL'}: 生产区域_自动计算 — {resp.get('msg','')}"]
-
-
-def patch_formulas(client: Client, dry_run: bool) -> list[str]:
-    name_expr = build_process_name_expr()
-    code_expr = build_process_code_expr()
-    lines: list[str] = []
-    for fid, fname in ((PROC_NAME_FIELD, "工序名称"), (PROC_CODE_FIELD, "工序代码")):
-        if dry_run:
-            lines.append(f"[dry-run] patch {fname} (len={len(name_expr if fname=='工序名称' else code_expr)})")
-            continue
-        expr = name_expr if fname == "工序名称" else code_expr
-        resp = client.call(
-            "PUT",
-            f"/bitable/v1/apps/{APP}/tables/{MAIN_TABLE}/fields/{fid}",
-            json={"field_name": fname, "type": 20, "property": {"formula_expression": expr}},
-        )
-        lines.append(f"{'ok' if resp.get('code')==0 else 'FAIL'}: {fname} — {resp.get('msg','')}")
-    return lines
+    ok = resp.get("code") == 0
+    return f"{'ok' if ok else 'FAIL'}: {name} — {resp.get('msg', '')}"
 
 
 def verify(client: Client) -> list[str]:
-    time.sleep(8)
-    from sync_batch_summary import extract_text
-
+    time.sleep(12)
     recs = client.list_records(MAIN_TABLE)
-    codes = [extract_text(r["fields"].get("工序代码")) for r in recs]
-    areas = [extract_text(r["fields"].get("生产区域")) for r in recs]
-    nonempty = sum(1 for c in codes if c)
-    areas_ok = sum(1 for a in areas if a)
-    return [
-        f"工序代码非空: {nonempty}/{len(recs)} 样例={codes[0]!r}",
-        f"生产区域非空: {areas_ok}/{len(recs)} 样例={areas[0]!r}",
-    ]
+    lines: list[str] = []
+    for fname in ("工序代码", "工序名称", "批工序键", "完整追溯号"):
+        vals = [extract_text(r["fields"].get(fname)) for r in recs]
+        nonempty = sum(1 for v in vals if v)
+        sample = next((v for v in vals if v), "")
+        lines.append(f"{fname} 非空: {nonempty}/{len(recs)} 样例={sample!r}")
+    return lines
 
 
 def run(dry_run: bool) -> int:
@@ -142,12 +200,17 @@ def run(dry_run: bool) -> int:
     client = Client(cfg["feishu"]["app_id"], cfg["feishu"]["app_secret"])
     print("fix_2026_process_formulas")
     print("-" * 60)
-    for name, opts in RECREATE_MARKERS:
-        print(recreate_marker_field(client, name, opts, dry_run))
-    for line in patch_formulas(client, dry_run):
-        print(line)
-    for line in patch_area_formula(client, dry_run):
-        print(line)
+
+    patches = [
+        (PROC_CODE_FIELD, "工序代码", build_process_code_expr()),
+        (PROC_NAME_FIELD, "工序名称", build_process_name_expr()),
+        (PROC_AREA_AUTO_FIELD, "生产区域", build_production_area_expr()),
+        (BATCH_KEY_FIELD, "批工序键", build_batch_key_expr()),
+        (FULL_TRACE_FIELD, "完整追溯号", build_full_trace_expr()),
+    ]
+    for fid, name, expr in patches:
+        print(patch_field(client, fid, name, expr, dry_run))
+
     if not dry_run:
         for line in verify(client):
             print(line)
@@ -158,7 +221,10 @@ def run(dry_run: bool) -> int:
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--dry-run", action="store_true")
+    p.add_argument("--fix", action="store_true")
     args = p.parse_args()
+    if not args.fix and not args.dry_run:
+        p.error("specify --fix or --dry-run")
     try:
         return run(args.dry_run)
     except Exception as e:

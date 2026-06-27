@@ -11,7 +11,8 @@
     "defect_detail": "tblTk6xVopyoCjOF",
     "rework_completion": "tblINpP7IJ67h4d9",
     "defect_reason": "tblrQW6JouoEEMGn",
-    "warehouse_log": "tbl8lKqC9zpheaCc"
+    "warehouse_log": "tbl8lKqC9zpheaCc",
+    "yield_detail": "tblheKbZ7R9LxtvF"
   },
   "link_tables": {
     "product": {

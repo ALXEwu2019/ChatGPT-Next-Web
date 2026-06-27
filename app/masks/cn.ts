@@ -1,6 +1,8 @@
 import { BuiltinMask } from "./typing";
+import { MACHINING_LOG_V4_2026_MASK } from "./machining-log-v4-2026";
 
 export const CN_MASKS: BuiltinMask[] = [
+  MACHINING_LOG_V4_2026_MASK,
   {
     avatar: "1f5bc-fe0f",
     name: "以文搜图",

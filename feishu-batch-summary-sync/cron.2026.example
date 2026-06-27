@@ -1,0 +1,11 @@
+# 2026 生产 Base 汇总同步 — 每天 8:00 / 12:00 / 20:00
+# 安装：cd feishu-batch-summary-sync && ./install_cron_2026.sh
+# 手动：./run_sync_2026.sh
+
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin
+
+# feishu-sync-2026
+0 8 * * *  cd /workspace/feishu-batch-summary-sync && ./run_sync_2026.sh
+0 12 * * * cd /workspace/feishu-batch-summary-sync && ./run_sync_2026.sh
+0 20 * * * cd /workspace/feishu-batch-summary-sync && ./run_sync_2026.sh

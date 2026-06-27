@@ -115,7 +115,6 @@ def ensure_control(client: Client, batch: str, product: str, proc_code: str, dry
         f"/bitable/v1/apps/{APP}/tables/{CTRL}/records",
         json={
             "fields": {
-                "批号文本": batch,
                 "批次号": batch,
                 "产品": [PROD[product]],
                 "工序代码": [PROC[(product, proc_code)]],

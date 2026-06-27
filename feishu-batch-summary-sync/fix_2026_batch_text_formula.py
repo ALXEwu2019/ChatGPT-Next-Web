@@ -16,7 +16,7 @@ from remediate_2026_summary import APP, MAIN_TABLE, Client, load_2026_config
 from sync_batch_summary import extract_text
 
 MAIN = MAIN_TABLE
-CTRL_BATCH_COL = "fldTG0SeXm"  # 管控表·批号文本
+CTRL_BATCH_COL = "fldHJY853n"  # 管控表·批次号（现网列名）
 BATCH_TEXT_FIELD = "fldn9YCUgm"
 
 # 首道：关联管控批 → 管控表.批号文本

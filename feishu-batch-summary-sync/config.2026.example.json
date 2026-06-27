@@ -10,7 +10,8 @@
     "defect_linkage": "tblABIgbureAlcnU",
     "defect_detail": "tblTk6xVopyoCjOF",
     "rework_completion": "tblINpP7IJ67h4d9",
-    "defect_reason": "tblrQW6JouoEEMGn"
+    "defect_reason": "tblrQW6JouoEEMGn",
+    "warehouse_log": "tbl8lKqC9zpheaCc"
   },
   "link_tables": {
     "product": {
